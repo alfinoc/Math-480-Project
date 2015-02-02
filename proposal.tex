@@ -29,7 +29,7 @@ The introductory programming lab in Mary Gates Hall is a two room computer lab o
 The objective of our model is to schedule TAs such that average student wait time in the queue is minimized subject to, at a bare minimum, the following constraints:
 \begin{itemize}
     \item The IPL is always staffed with at least one TA.
-    \item There is at least one senior TA staffed during key hours before due dates for the more advanced assignments. A \texit{senior TA} is a TA that has instructed for at least three quarters.
+    \item There is at least one senior TA staffed during key hours before due dates for the more advanced assignments. A \textit{senior TA} is a TA that has instructed for at least three quarters.
 \end{itemize}
 
 The CS department has already done some work to accommodate varying student demand across the week. For instance, more students arrive at the IPL during the hours before important due dates, so more TAs are staffed during these hours. Over the past couple years, data has been collected about the frequency of CSE 142 and 143 student questions at various times of the day.
@@ -51,10 +51,15 @@ With this information, we should be able to build a simulation. Similar to how t
 \section*{Basic LP}
 Our problem can be formulated as a general transportation problem, with $m$ TAs as supply points and $n$ time slots as demand points. Under this formulation, we let $x_{ij}$ be a 0-1 variable where $x_{ij} = 1$ if TA $i$ works time slot $j$ and $x_{ij} = 0$ otherwise.
 
-For each TA $i$, let $s_i = 1$ if TA $i$ is a senior TA, 0 otherwise. Each TA must work at least two hours each week and can up to a self-imposed maximum $m_i$ hours. As undergraduate UW employees, TAs cannot legally work more than 19.5 hours, so we require liberally that $m_i \leq 19$. Formally for each TA $i$,
+For each TA $i$, let $s_i = 1$ if TA $i$ is a senior TA, 0 otherwise. Each TA must work at least two hours each week and can work up to a self-imposed maximum $m_i$ hours. As undergraduate UW employees, TAs cannot legally work more than 19.5 hours. Formally for each TA $i$,
 
 \begin{equation}
-2 < \sum_{j=1}^{n}x_{ij}\ \leq m_i \leq 19
+2 < \sum_{j=1}^{n}x_{ij} \leq m_i \leq 19
+\end{equation}
+
+Time slot preferences encode an addition contraint. In particular, if real number $a_{ij} \in [0,1]$ represents the availability preference of TA $i$ at slot $j$, then if $a_{ij} = 0$, we intrepret this preference as absolute: the TA \textit{cannot} work the time slot, so should not be scheduled for that slot. Using the usual techniques for if-then constraints, we require for each TA $i$ and time slot $j$,
+\begin{equation}
+x_{ij} = 1 \textrm{ iff } 0 < a_{ij}
 \end{equation}
 
 For each time slot $j$, let $t_j$ and $u_j$ be the minimum number of total and senior TAs respectively required. Let $T_j$ be the maximum number of TAs allowed for each time slot. Formally for each time slot $j$,
@@ -67,9 +72,17 @@ t_j \leq \sum_{i=1}^{m}x_{ij} \leq T_j
 u_j \leq \sum_{i=1}^{m}x_{ij}s_i
 \end{equation}
 
-Unlike a general transportation problem, we are not simply minimizing supply usage. After all, TAs may in fact \textit{wish} to work more hours, and since the CSE department has money to spare on staffing costs, we can assume that the department is willing to pay to staff as many as $T_j$ TAs in each slot. Our objective function is a measure of average TA preference, weighted by TA seniority.
+Unlike a general transportation problem, we are not simply minimizing supply usage. After all, TAs may in fact \textit{wish} to work more hours, and since the CSE department has money to spare on staffing costs, we can assume that the department is willing to pay to staff as many as $T_j$ TAs in each slot. Our objective function is a measure of average TA preference, weighted by TA seniority. The adverage adherence to the preferences of TA $i$ is,
 
-For each TA $i$, let $q_i$ be the number of quarters that TA has taught (a measure of seniority) and write $q_max = max_i^n{q_i}$
+\begin{equation}
+a(i) = \frac{1}{n}\sum_{j=1}^na_{ij}x_{ij}
+\end{equation}
+
+For each TA $i$, let $q_i$ be the number of quarters that TA has taught (a measure of seniority) and write $q_{max} = max\{q_1, ..., q_m\}$. Our objective function is the weighted average,
+
+\begin{equation}
+\textrm{maximize } \frac{1}{m\cdot q_{max}} \sum_{i=1}^mq_i\cdot a(i)
+\end{equation}
 
 \section*{Interpretation}
 The solution, a set of staffing assignments, should find immediate application. This solution, in conjunction with data collected about average student wait times, will inform our approach with the simulation model. By adjusting the number of TAs in our simulation at various experience levels in each iteration, we hope to see either an increase or decrease in the average student wait time.
