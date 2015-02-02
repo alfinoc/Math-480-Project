@@ -37,27 +37,27 @@ The CS department has already done some work to accommodate varying student dema
 TAs themselves have preferences that cannot be ignored in scheduling hours. Each student has some hours that they cannot work (during class, for instance), and also preferences about when they'd like to work. As a goal, we would like to maximize TA preference accommodation, splitting ties according to TA seniority (number of quarters taught). These preferences must be balanced, however, with the need to compose groups of ideally mixed seniority during key hours. Before a particularly tough CSE 143 assignment, it is essential that senior and 143 TAs are present to field questions and help less experienced TAs. These factors should we weighted into the objective function in a way that is customizable in the future.
 
 \section*{Approach}
-In some ways, this is a standard linear programming problem, similar to scheduling problems we've already seen in class. For this more basic version of the problem, data will come in the form of:
+In some ways, this is a standard linear programming problem, similar to scheduling problems we've already seen in class. For the LP formulation below, data will come in the form of:
 \begin{itemize}
-    \item TA preferences/schedule requirements as describe above.
+    \item TA preference/schedule requirements, where each TA provides a real number from 0 to 1 (unavailable to available) for each time slot.
     \item TA experience levels, including number of quarters TA'd for each of CSE 142 and 143.
-    \item Student question frequency per hour for each course.
+    \item CSE Department requirements for minimum and maximum number of total and senior TAs needed for each slot.
 \end{itemize}
 
-Of course in reality IPL queue activity is more complicated than the ideal situation described above. The assumption that each student will demand only the 2 to 10 minutes per question is perhaps overly generous. Early testing should allow us to collect one more category of data: true amount of time required to serve each student question. These times should be easy to collect by observing TA behavior during sample hours during the week. We expect that this issue will be more significant during peak hours, so simulation could be limited to a small window (the final hours of Thursday night immediately before a due date, perhaps).
+The precise formulation of the LP model is described below. It makes use of several known constants, though: the minimum total and senior TAs required per time slot. The CSE department has already estimated these lower bounds roughly from the number of questions per hour, and their estimates should work fine for initial solutions of our LP. But in order to generate better estimates, we plan to build a simulation.
 
-With this information, we should be able to build a simulation. Similar to how the American West researchers discovered additional features of airplane boarding queueing behavior by constructing a simulation, we hope to gain insights into the causes of IPL queue backlog. It is possible, for instance, that staffing fewer, experienced TAs moves the student queue faster than many, less experienced TAs, since average help time could be minimized. To keep things simpler with the initial LP model, we can assume that questions take either 2 or 10 minutes (this requirement is ostensibly enforced by IPL policy, with students specifically requesting ``2-minute'' or ``10-minute'' help periods).
+Of course in reality IPL queue activity is more complicated than the ideal situation described above. The assumption that each student will utilize exactly their allowed 2 to 10 minutes per question is likely unrealistic. Early testing should allow us to collect one more category of data: true amount of time required to serve each student question. These times should be easy to collect by observing TA behavior during sample hours during the week. We expect that this issue will be more significant during peak hours, so we may restrict data collection to a small window (the final hours of Thursday night immediately before a due date, perhaps). Similar to how the American West researchers discovered additional features of airplane boarding queueing behavior by constructing a simulation, we hope to gain insights into the causes of IPL queue backlog. It is possible, for instance, that staffing fewer, experienced TAs moves the student queue faster than many, less experienced TAs, since average help time could be minimized.
 
 \section*{Basic LP}
-Our problem can be formulated as a general transportation problem, with $m$ TAs as supply points and $n$ time slots as demand points. Under this formulation, we let $x_{ij}$ be a 0-1 variable where $x_{ij} = 1$ if TA $i$ works time slot $j$ and $x_{ij} = 0$ otherwise.
+Our problem can be formulated as a general asssignment problem, with $m$ TAs as supply points and $n$ time slots as demand points. Under this formulation, we let $x_{ij}$ be a 0-1 variable where $x_{ij} = 1$ if TA $i$ works time slot $j$ and $x_{ij} = 0$ otherwise.
 
 For each TA $i$, let $s_i = 1$ if TA $i$ is a senior TA, 0 otherwise. Each TA must work at least two hours each week and can work up to a self-imposed maximum $m_i$ hours. As undergraduate UW employees, TAs cannot legally work more than 19.5 hours. Formally for each TA $i$,
 
 \begin{equation}
-2 < \sum_{j=1}^{n}x_{ij} \leq m_i \leq 19
+2 \leq \sum_{j=1}^{n}x_{ij} \leq m_i \leq 19
 \end{equation}
 
-Time slot preferences encode an addition contraint. In particular, if real number $a_{ij} \in [0,1]$ represents the availability preference of TA $i$ at slot $j$, then if $a_{ij} = 0$, we intrepret this preference as absolute: the TA \textit{cannot} work the time slot, so should not be scheduled for that slot. Using the usual techniques for if-then constraints, we require for each TA $i$ and time slot $j$,
+Time slot preferences contain an addition contraint. In particular, if real number $a_{ij} \in [0,1]$ represents the availability preference of TA $i$ at slot $j$, then if $a_{ij} = 0$, we intrepret this preference as absolute: the TA \textit{cannot} work the time slot, so should not be scheduled for that slot. Using the usual techniques for if-then constraints, we require for each TA $i$ and time slot $j$,
 \begin{equation}
 x_{ij} = 1 \textrm{ iff } 0 < a_{ij}
 \end{equation}
@@ -90,7 +90,7 @@ The solution, a set of staffing assignments, should find immediate application. 
 The results of our simulation may also reveal issues of over-staffing during certain days of the week. One or two TAs are sufficient enough to satisfy the bare minimum constraints and keep student wait time to essentially zero during “down” times, but we may need to separately model “day before due date” scenarios, where a high volume of students is almost always expected. And again, ideally both of these models would also need to weigh TA experience level to observe whether or not experienced TAs provide a substantial benefit.
 
 \section*{Resources}
-As we translate our IPL staffing problem into a linear programming problem, there are various utilities available to begin constructing our model. Between SageMath and the Wolfram Language, we have access to functions for maximizing and minimizing our objective function subject to our constraints.
+As we translate our IPL staffing problem into a linear programming problem, there are various utilities available to begin constructing our model. Between SageMath and the Wolfram Language, we have access to functions for maximizing and minimizing our objective function subject to our constraints. As an assignment problem, 
 
 The CS department makes the current and past IPL schedules public online. This information will be useful in determining our baseline staffing values, as well as initially providing us with a sense of average question frequency versus number of TAs available during that a period. In addition, assignment due date schedules for CSE 142 and CSE 143 will of course be helpful in determining when higher volumes of students are expected in the IPL. And finally, the CS department’s actual data has yet to be seen, so while we’re confident that we will at least have question frequency numbers, there may be even more useful information available in their databases.
 
