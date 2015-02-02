@@ -11,8 +11,16 @@
 \begin{document}
 
 \title{\textbf{Optimal Scheduling of Introductory Programming Lab}}
-\author{Chris Alfino \textit{\&} Rajan Selvan}
+\author{
+   Chris Alfino \textit{\&} Rajan Selvan\\
+   \vspace{12pt}
+   \small\textit{Math 480}\\
+   Connor Moore\\
+   \small\textit{CSE TA Coordinator}}
+\date{}
+
 \maketitle
+\noindent\makebox[\linewidth]{\rule{\textwidth}{0.4pt}}
 
 \setlength\columnsep{0.45in}
 \setlength{\parskip}{0.5em}
@@ -26,15 +34,17 @@ The introductory programming lab in Mary Gates Hall is a two room computer lab o
 
 \section*{Objective}
 
-The objective of our model is to schedule TAs such that average student wait time in the queue is minimized subject to, at a bare minimum, the following constraints:
+At a high level, the objective of our model is to schedule TAs such that average student wait time in the queue is minimized subject to constraints like the following:
 \begin{itemize}
     \item The IPL is always staffed with at least one TA.
     \item There is at least one senior TA staffed during key hours before due dates for the more advanced assignments. A \textit{senior TA} is a TA that has instructed for at least three quarters.
+    \item TA schedule preferences are accomodated wherever possible.
+    \item Minimum and maximum 
 \end{itemize}
 
 The CS department has already done some work to accommodate varying student demand across the week. For instance, more students arrive at the IPL during the hours before important due dates, so more TAs are staffed during these hours. Over the past couple years, data has been collected about the frequency of CSE 142 and 143 student questions at various times of the day.
 
-TAs themselves have preferences that cannot be ignored in scheduling hours. Each student has some hours that they cannot work (during class, for instance), and also preferences about when they'd like to work. As a goal, we would like to maximize TA preference accommodation, splitting ties according to TA seniority (number of quarters taught). These preferences must be balanced, however, with the need to compose groups of ideally mixed seniority during key hours. Before a particularly tough CSE 143 assignment, it is essential that senior and 143 TAs are present to field questions and help less experienced TAs. These factors should we weighted into the objective function in a way that is customizable in the future.
+TAs themselves have preferences that cannot be ignored in scheduling hours. Each student has some hours that they cannot work (during class, for instance), and also preferences about when they'd like to work. As a goal, we would like to maximize TA preference accommodation, splitting ties according to TA seniority (number of quarters taught). These preferences must be balanced, however, with the need to compose groups of ideally mixed seniority during key hours. Before a particularly tough CSE 143 assignment, it is essential that more experienced TAs are present to field questions and help less experienced TAs. These factors should we weighted into the objective function in a way that is customizable in the future.
 
 \section*{Approach}
 In some ways, this is a standard linear programming problem, similar to scheduling problems we've already seen in class. For the LP formulation below, data will come in the form of:
@@ -44,9 +54,9 @@ In some ways, this is a standard linear programming problem, similar to scheduli
     \item CSE Department requirements for minimum and maximum number of total and senior TAs needed for each slot.
 \end{itemize}
 
-The precise formulation of the LP model is described below. It makes use of several known constants, though: the minimum total and senior TAs required per time slot. The CSE department has already estimated these lower bounds roughly from the number of questions per hour, and their estimates should work fine for initial solutions of our LP. But in order to generate better estimates, we plan to build a simulation.
+The precise formulation of the LP model is described below. It makes use of several known constants: the minimum total and senior TAs required per time slot. The CSE department has already estimated these lower bounds from the number of student questions per hour, and their estimates should work fine for initial solutions of our LP. But in order to generate better estimates, we plan to build a simulation. Similar to how the American West researchers discovered additional features of airplane boarding queueing behavior by constructing a simulation, we hope to gain insights into the causes of IPL queue backlog. It is possible, for instance, that staffing fewer, experienced TAs moves the student queue faster than many, less experienced TAs, since average help time could be minimized.
 
-Of course in reality IPL queue activity is more complicated than the ideal situation described above. The assumption that each student will utilize exactly their allowed 2 to 10 minutes per question is likely unrealistic. Early testing should allow us to collect one more category of data: true amount of time required to serve each student question. These times should be easy to collect by observing TA behavior during sample hours during the week. We expect that this issue will be more significant during peak hours, so we may restrict data collection to a small window (the final hours of Thursday night immediately before a due date, perhaps). Similar to how the American West researchers discovered additional features of airplane boarding queueing behavior by constructing a simulation, we hope to gain insights into the causes of IPL queue backlog. It is possible, for instance, that staffing fewer, experienced TAs moves the student queue faster than many, less experienced TAs, since average help time could be minimized.
+Technically, students are supposed to be helped for at most 2 or 10 minutes, depending on which queue they add themselves to in the IPL. But the assumption that help times obey these guidelines is likely unrealistic. Early testing should allow us to collect one more category of data: true amount of time required to serve each student question. These times should be easy to collect by observing TA behavior during sample hours during the week. We expect that queue backlog will be more significant during peak hours, so we may restrict data collection to a small window (the final hours of Thursday night immediately before a due date, perhaps). 
 
 \section*{Basic LP}
 Our problem can be formulated as a general asssignment problem, with $m$ TAs as supply points and $n$ time slots as demand points. Under this formulation, we let $x_{ij}$ be a 0-1 variable where $x_{ij} = 1$ if TA $i$ works time slot $j$ and $x_{ij} = 0$ otherwise.
@@ -84,19 +94,13 @@ For each TA $i$, let $q_i$ be the number of quarters that TA has taught (a measu
 \textrm{maximize } \frac{1}{m\cdot q_{max}} \sum_{i=1}^mq_i\cdot a(i)
 \end{equation}
 
-\section*{Interpretation}
-The solution, a set of staffing assignments, should find immediate application. This solution, in conjunction with data collected about average student wait times, will inform our approach with the simulation model. By adjusting the number of TAs in our simulation at various experience levels in each iteration, we hope to see either an increase or decrease in the average student wait time.
-
-The results of our simulation may also reveal issues of over-staffing during certain days of the week. One or two TAs are sufficient enough to satisfy the bare minimum constraints and keep student wait time to essentially zero during “down” times, but we may need to separately model “day before due date” scenarios, where a high volume of students is almost always expected. And again, ideally both of these models would also need to weigh TA experience level to observe whether or not experienced TAs provide a substantial benefit.
-
 \section*{Resources}
-As we translate our IPL staffing problem into a linear programming problem, there are various utilities available to begin constructing our model. Between SageMath and the Wolfram Language, we have access to functions for maximizing and minimizing our objective function subject to our constraints. As an assignment problem, 
+As we translate our IPL staffing problem into a linear programming problem, there are various utilities available to begin constructing our model. Between SageMath and the Wolfram Language, we have access to functions for maximizing and minimizing our objective function subject to our constraints. As an assignment problem, our objective and the Hungarian solution is treated in section 7.5 of Winston (page 393).
 
-The CS department makes the current and past IPL schedules public online. This information will be useful in determining our baseline staffing values, as well as initially providing us with a sense of average question frequency versus number of TAs available during that a period. In addition, assignment due date schedules for CSE 142 and CSE 143 will of course be helpful in determining when higher volumes of students are expected in the IPL. And finally, the CS department’s actual data has yet to be seen, so while we’re confident that we will at least have question frequency numbers, there may be even more useful information available in their databases.
+The CS department makes the current and past IPL schedules public online. This information will be useful in determining our baseline staffing values, as well as initially providing us with a sense of average question frequency versus number of TAs available during that a period. In addition, assignment due date schedules for CSE 142 and CSE 143 will of course be helpful in determining when higher volumes of students are ex-pected in the IPL. And finally, the CS department stores constantly updating data on the number of questions asked per hour and minutes of waittime per question.
 
 \section*{Conclusion}
-We hope to model the problem of optimal TA staffing first as a basic integer programming problem similar to other scheduling problems we've seen. From there, we will build a simulation to model the more probabilistic nature of the lab’s student queue. Hopefully, we'll have an opportunity to test our resulting approach in future quarters.
+We hope to model the problem of optimal TA staffing first as a linear programming problem similar to other scheduling problems we've seen. From there, we will build a simulation to model the more probabilistic nature of the lab’s student queue. The problem solution, a set of staffing assignments, should find immediate application, and hopefully, we'll have an opportunity to test our resulting approach in future quarters.
 
 \end{multicols}
-
 \end{document}
