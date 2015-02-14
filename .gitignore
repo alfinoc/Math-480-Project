@@ -2,4 +2,4 @@
 *.aux
 *.log
 data/*
-
+*.pyc
