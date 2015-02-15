@@ -1,5 +1,6 @@
 from sys import argv
 from preferences import getRandomTAPreferenceMap, serialize
+from json import dumps
 
 NUM_TAS = 10
 try:
@@ -7,6 +8,8 @@ try:
 except:
    pass
 
+tas = []
 for i in range(NUM_TAS):
    prefMap = getRandomTAPreferenceMap()
-   print serialize(prefMap)
+   tas.append(serialize(prefMap))
+print dumps({'prefs': tas})

@@ -38,14 +38,14 @@ def blackoutCourses(preferences):
    # Black out some MWF lectures.
    chosen = set()
    for i in range(choice(NUM_CLASSES)):
-      hour = choice(list(set(range(5)) - chosen))
+      hour = choice(list(set(range(8)) - chosen))
       chosen.add(hour)
       blackoutMWF(preferences, hour)
 
    # Black out some TTh Sections
    chosen = set()
    for i in range(choice(NUM_SECTIONS)):
-      hour = choice(list(set(range(5)) - chosen))
+      hour = choice(list(set(range(8)) - chosen))
       chosen.add(hour)
       blackoutTTh(preferences, hour)
    return preferences
