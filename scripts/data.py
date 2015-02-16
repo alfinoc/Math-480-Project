@@ -2,10 +2,16 @@ from datetime import datetime
 from conf import KEYS, TIME_KEYS, DAY_NAMES
 
 class QueueRequest:
-   # Initializes the QueueRequest to store all (key, value) pairs in dict 
+   # Initializes the QueueRequest to store all (key, value) pairs in dict.
    def __init__(self, dict):
       for key in dict:
          setattr(self, key, dict[key])
+
+   def __str__(self):
+      return '(%s, %s)' % (str(self.time_in), self.queue_type)
+
+   def __unicode__(self):
+      return str(self)
 
 class QueueData:
    # Initializes the QueueData store with the contents of the tab separated
@@ -14,12 +20,11 @@ class QueueData:
       lines = list(open(filename))
       keys = lines[0].strip().split('\t')
       self.requests = map(self._parseLine, lines[1:])
-      self.requests = sorted(self.requests, key=lambda req : req.time_in)
 
    # Returns an array of maps, one map per week starting at the beginning of the
    # data set. Each map is keyed on day names and each value is a list of requests
    # for that day sorted on request time.
-   def weekBuckets(self):
+   def byWeek(self):
       first = self.requests[0].time_in
       last = self.requests[len(self.requests) - 1].time_in
       buckets = [None] * ((last - first).days / len(DAY_NAMES) + 1)
@@ -49,4 +54,3 @@ class QueueData:
    # Returns an iterator or the requests list.
    def __iter__(self):
       return self.requests.__iter__()
-
