@@ -16,6 +16,9 @@ class QueueData:
       self.requests = map(self._parseLine, lines[1:])
       self.requests = sorted(self.requests, key=lambda req : req.time_in)
 
+   # Returns an array of maps, one map per week starting at the beginning of the
+   # data set. Each map is keyed on day names and each value is a list of requests
+   # for that day sorted on request time.
    def weekBuckets(self):
       first = self.requests[0].time_in
       last = self.requests[len(self.requests) - 1].time_in
