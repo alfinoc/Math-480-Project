@@ -21,3 +21,9 @@ print 'Simulating on {0} of week {1}.'.format(day, week)
 data = QueueData(filename).byWeek()[week][day]
 sim = Simulator(data, 3, 2)
 sim.run()
+"""
+i = 0
+for r in data:
+   print i, r
+   i += 1
+"""

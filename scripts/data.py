@@ -25,7 +25,8 @@ class QueueData:
    # data set. Each map is keyed on day names and each value is a list of requests
    # for that day sorted on request time.
    def byWeek(self):
-      first = self.requests[0].time_in
+      # Start at the beginning of the first day.
+      first = datetime.combine(self.requests[0].time_in.date(), datetime.min.time())
       last = self.requests[len(self.requests) - 1].time_in
       buckets = [None] * ((last - first).days / len(DAY_NAMES) + 1)
       for req in self.requests:
