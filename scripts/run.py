@@ -19,8 +19,8 @@ except:
 
 print 'Simulating on {0} of week {1}.'.format(day, week)
 data = QueueData(filename).byWeek()[week][day]
-sim = Simulator(data, 3, 2)
-sim.run()
+sim = Simulator(data)
+sim.run(5, 3)
 """
 i = 0
 for r in data:

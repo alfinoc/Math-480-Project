@@ -5,8 +5,13 @@ from data import QueueData
 from sys import stdout
 from random import random
 
-# 1 is real time, which would take roughly 9 hours.
+# Simulation speed multiplier. 1 is real time, which would take roughly 9 hours
+# for a typical day's worth of data.
 SPEED_FACTOR = 9 * 60 * 2
+
+# Senior TA speed multiplier (how much faster senior TAs serve students than
+# normal TAs). 1 is the same amount of time as regular TAs.
+SENIOR_FACTOR = 2
 
 # Odds that the 2-minute queue will take precedence over the 10 minute.
 TWO_MIN_PREF = 1
@@ -51,7 +56,7 @@ class DoubleQueue():
 
 class Simulator:
    # Stores the given list of data.QueueRequest objects.
-   def __init__(self, requests, regularTAs, seniorTAs):
+   def __init__(self, requests):
       self.queue = DoubleQueue()
       self.buffer = sorted(requests, key=lambda req : req.time_in)
       self.buffer.reverse()
@@ -59,18 +64,19 @@ class Simulator:
       self.requestsLeft = 0
 
    # Run simulation threads
-   def run(self):
+   def run(self, regularTAs, seniorTAs):
       start = self.scheduleRequests()
       print '   Requests scheduled.'
-      for i in range(5):
-         ta = Thread(target=self.serve)
+      for i in range(regularTAs + seniorTAs):
+         ta = Thread(target=self.serve, args=((i >= regularTAs),))
          #ta.daemon = True
          ta.start()
       print '   TAs born and waiting.'
       start()
 
    # Attempt to serve incoming requests until none are left.
-   def serve(self):
+   def serve(self, senior=False):
+      print senior
       while self.requestsLeft > 0:
          self.cv.acquire()
          while self.queue.empty() and self.requestsLeft > 0:
@@ -78,12 +84,11 @@ class Simulator:
          request = self.queue.get()
          self.cv.release()
          if request != None:
-            print '   served ' + str(request) + ', left: ' + str(self.requestsLeft)
             self.requestsLeft -= 1
+            print '   served request %s. %d requests left.' % (request, self.requestsLeft)
             # Help the student for exactly the amount of time for that queue
             # (2 minutes or 10 minutes).
-            sleep(float(request.queue_type) * 60 / SPEED_FACTOR)
-      print 'TA thread finishing.'
+            sleep(float(request.queue_type) * 60 / SPEED_FACTOR / SENIOR_FACTOR)
       self.cv.acquire()
       self.cv.notifyAll()
       self.cv.release()
@@ -101,6 +106,7 @@ class Simulator:
          next = self.buffer.pop()
          time = float((next.time_in - first).seconds) / SPEED_FACTOR
          timers.append(Timer(time, self.makeRequest, (next,)))
+      # Begin the timers on each request.
       def start():
          for t in timers:
             t.start()
