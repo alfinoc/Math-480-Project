@@ -4,7 +4,7 @@ from Queue import Queue
 from data import QueueData
 from sys import stdout
 from random import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Simulation speed multiplier. 1 is real time, which would take roughly 9 hours
 # for a typical day's worth of data.
@@ -112,7 +112,7 @@ class Simulator:
       self.totalSurplus = 0
       self.seniorSurplus = 0
       timers = self.scheduleRequests() + self.scheduleReqtChanges(totalReqts)
-      print '   Timers scheduled.'
+      print 'Timers scheduled.'
       for i in range(regularTAs + seniorTAs):
          Thread(target=self.serve, args=(i >= regularTAs,)).start()
       for t in timers:
@@ -120,12 +120,13 @@ class Simulator:
 
    # Attempt to serve incoming requests until none are left.
    def serve(self, senior=False):
-      print '   TA born!'
+      print '{0} TA beginning shift.'.format('Senior' if senior else 'Normal')
       while self.requestsLeft > 0:
          with self.cv:
             while self.queue.empty() and self.requestsLeft > 0:
                self.cv.wait()
             if self._handleSurplus(senior):
+               print 'TA finishing shift.'
                return
             request = self.queue.get()
          if request != None:
@@ -156,7 +157,6 @@ class Simulator:
       timers = []
       deltas = zip(getDeltas(reqs), getDeltas(reqs))
       hour = 1
-      print deltas
       for total, senior in deltas:
          time = float(hour * 3600) / SPEED_FACTOR
          timers.append(Timer(time, self.changeSurplus, args=(total, senior)))
@@ -184,7 +184,7 @@ class Simulator:
 
    def changeSurplus(self, totalChange, seniorChange):
       with self.cv:
-         print '   Requirement change: ({0}, {1}).'.format(totalChange, seniorChange)
+         print 'Requirement change: ({0}, {1}).'.format(totalChange, seniorChange)
          self.totalSurplus += totalChange
          self.seniorSurplus += seniorChange
 
@@ -196,7 +196,10 @@ class Simulator:
       if len(self.buffer) == 0:
          raise ValueError('No requests to schedule!')
       self.requestsLeft = len(self.buffer)
+      # Start simulation at noon.
       first = self.buffer[len(self.buffer) - 1].time_in
+      first = datetime.combine(first.date(), datetime.min.time())
+      first += timedelta(hours=12)
       timers = []
       for req in self.buffer:
          time = float((req.time_in - first).seconds) / SPEED_FACTOR
