@@ -112,25 +112,22 @@ class Simulator:
       self.totalSurplus = 0
       self.seniorSurplus = 0
       timers = self.scheduleRequests() + self.scheduleReqtChanges(totalReqts)
-      print '   Requests scheduled.'
+      print '   Timers scheduled.'
       for i in range(regularTAs + seniorTAs):
-         ta = Thread(target=self.serve, args=(i >= regularTAs,))
-         #ta.daemon = True
-         ta.start()
-      print '   TAs born and waiting.'
+         Thread(target=self.serve, args=(i >= regularTAs,)).start()
       for t in timers:
          t.start()
 
    # Attempt to serve incoming requests until none are left.
    def serve(self, senior=False):
+      print '   TA born!'
       while self.requestsLeft > 0:
-         self.cv.acquire()
-         while self.queue.empty() and self.requestsLeft > 0:
-            self.cv.wait()
-         #if self._handleSurplus(senior):
-         #   return
-         request = self.queue.get()
-         self.cv.release()
+         with self.cv:
+            while self.queue.empty() and self.requestsLeft > 0:
+               self.cv.wait()
+            if self._handleSurplus(senior):
+               return
+            request = self.queue.get()
          if request != None:
             self.requestsLeft -= 1
             print '   served request %s. %d requests left.' % (request, self.requestsLeft)
@@ -140,12 +137,11 @@ class Simulator:
             sleep(float(request.queue_type) * 60 / SPEED_FACTOR / SENIOR_FACTOR)
 
       # No more requests are coming, so every TA should exit.
-      self.cv.acquire()
-      self.cv.notifyAll()
-      # Call the finished callback exactly once.
-      self.finished(self.report)
-      self.finished = lambda x : None
-      self.cv.release()
+      with self.cv:
+         self.cv.notifyAll()
+         # Call the finished callback exactly once.
+         self.finished(self.report)
+         self.finished = lambda x : None
 
    # Schedule changes in the number of TAs required at various times in the day.
    # Each returned timer fires at a certain hour, incrementing or decrementing the
@@ -162,8 +158,9 @@ class Simulator:
       hour = 1
       print deltas
       for total, senior in deltas:
-         time = hour * 360 / SPEED_FACTOR
+         time = float(hour * 3600) / SPEED_FACTOR
          timers.append(Timer(time, self.changeSurplus, args=(total, senior)))
+         hour += 1
       return timers
 
    def _handleSurplus(self, senior):
@@ -186,10 +183,10 @@ class Simulator:
       return False
 
    def changeSurplus(self, totalChange, seniorChange):
-      self.cv.acquire()
-      self.totalSurplus += totalChange
-      self.seniorSurplus += seniorChange
-      self.cv.release()
+      with self.cv:
+         print '   Requirement change: ({0}, {1}).'.format(totalChange, seniorChange)
+         self.totalSurplus += totalChange
+         self.seniorSurplus += seniorChange
 
    # Schedules the request times. Returns a list of timers, one per request.
    # Once started, each request is made at the times specified in the request's
@@ -209,8 +206,7 @@ class Simulator:
    # Adds the given request to either the two-minute or ten-minute queue
    # depending on the type of the request.
    def makeRequest(self, request):
-      self.cv.acquire()
-      self.report.recordTimeIn(request)
-      self.queue.put(request)
-      self.cv.notify()
-      self.cv.release()
+      with self.cv:
+         self.report.recordTimeIn(request)
+         self.queue.put(request)
+         self.cv.notify()
