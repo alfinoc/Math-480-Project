@@ -2,6 +2,7 @@ from sys import argv, exit
 from simulation import Simulator
 from data import QueueData
 from conf import DAY_NAMES
+import json
 
 # Report correct usage and exit gracefully.
 def usageError():
@@ -17,13 +18,15 @@ except:
    print e
    usageError()
 
+quotas = json.load(open('data/quotas.txt'))
+
 print 'Simulating on {0} of week {1}.'.format(day, week)
 data = QueueData(filename).byWeek()[week][day]
 sim = Simulator(data)
-sim.run(5, 3)
-"""
-i = 0
-for r in data:
-   print i, r
-   i += 1
-"""
+file = open("{0}_{1}_{2}.results".format(filename, week, day), 'w')
+
+# Report the results to the open file.
+def reportResults(report):
+   report.printTSV(file)
+
+sim.run(5, 3, reportResults, quotas[day])
