@@ -106,15 +106,17 @@ class Simulator:
       self.requestsLeft = 0
 
    # Run simulation threads.
-   def run(self, regularTAs, seniorTAs, finishedCallback, totalReqts):
+   def run(self, finishedCallback, totalReqts, seniorReqts):
       self.report = Report(self.buffer)
       self.finished = finishedCallback
-      self.totalSurplus = 0
+      self.regularSurplus = 0
       self.seniorSurplus = 0
-      timers = self.scheduleRequests() + self.scheduleReqtChanges(totalReqts)
+      timers = self.scheduleRequests() + self.scheduleReqtChanges(totalReqts, seniorReqts)
       print 'Timers scheduled.'
-      for i in range(regularTAs + seniorTAs):
-         Thread(target=self.serve, args=(i >= regularTAs,)).start()
+      initialRegular = totalReqts[0]
+      initialSenior = seniorReqts[0]
+      for i in range(initialRegular + initialSenior):
+         Thread(target=self.serve, args=(i >= initialRegular,)).start()
       for t in timers:
          t.start()
 
@@ -147,15 +149,15 @@ class Simulator:
    # Schedule changes in the number of TAs required at various times in the day.
    # Each returned timer fires at a certain hour, incrementing or decrementing the
    # total or senior TA requirements.
-   def scheduleReqtChanges(self, reqs):
+   def scheduleReqtChanges(self, totalReqs, seniorReqs):
       # Returns a sequence of differences between consecutive elements in 'reqs'.
       def getDeltas(reqs):
          deltas = []
          for i in range(1, len(reqs)):
-            deltas.append(reqs[i] - reqs[i - 1])
+            deltas.append(reqs[i - 1] - reqs[i])
          return deltas
       timers = []
-      deltas = zip(getDeltas(reqs), getDeltas(reqs))
+      deltas = zip(getDeltas(totalReqs), getDeltas(seniorReqs))
       hour = 1
       for total, senior in deltas:
          time = float(hour * 3600) / SPEED_FACTOR
@@ -169,14 +171,14 @@ class Simulator:
    def _handleSurplus(self, senior):
       # Get the surplus of the current TA type.
       def get():
-         return self.seniorSurplus if senior else self.totalSurplus
+         return self.seniorSurplus if senior else self.regularSurplus
 
       # Set the surplus of the current TA type to the given value.
       def set(val):
          if senior:
             self.seniorSurplus = val
          else:
-            self.totalSurplus = val
+            self.regularSurplus = val
 
       prior = get()
       if prior > 0:
@@ -192,7 +194,7 @@ class Simulator:
    def changeSurplus(self, totalChange, seniorChange):
       with self.cv:
          print 'Requirement change: ({0}, {1}).'.format(totalChange, seniorChange)
-         self.totalSurplus += totalChange
+         self.regularSurplus += totalChange
          self.seniorSurplus += seniorChange
 
    # Schedules the request times. Returns a list of timers, one per request.

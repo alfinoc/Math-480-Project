@@ -29,4 +29,9 @@ file = open("{0}_{1}_{2}.results".format(filename, week, day), 'w')
 def reportResults(report):
    report.printTSV(file)
 
-sim.run(5, 3, reportResults, quotas[day])
+def diff(l1, l2):
+   return map(lambda (x, y) : x - y, zip(l1, l2))
+
+senior = quotas['senior'][day]
+regular = diff(quotas['total'][day], senior)
+sim.run(reportResults, regular, senior)
