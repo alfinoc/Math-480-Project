@@ -163,25 +163,32 @@ class Simulator:
          hour += 1
       return timers
 
+   # If a TA surplus is positive, decrements it and returns True. If a TA surplus
+   # is negative, increments it, spins up a new TA thread, and returns False. If
+   # the surplus is 0, returns False.
    def _handleSurplus(self, senior):
-      if senior:
-         if self.seniorSurplus > 0:
-            self.seniorSurplus -= 1
-            self.cv.notify()
-            return True
-         elif self.seniorSurplus < 0:
-            self.seniorSurplus += 1
-            Thread(target=self.serve, args=(True,)).start()
-      else:
-         if self.totalSurplus > 0:
-            self.totalSurplus -= 1
-            self.cv.notify()
-            return True
-         elif self.totalSurplus < 0:
-            self.totalSurplus += 1
-            Thread(target=self.serve, args=(False,)).start()
+      # Get the surplus of the current TA type.
+      def get():
+         return self.seniorSurplus if senior else self.totalSurplus
+
+      # Set the surplus of the current TA type to the given value.
+      def set(val):
+         if senior:
+            self.seniorSurplus = val
+         else:
+            self.totalSurplus = val
+
+      prior = get()
+      if prior > 0:
+         set(prior - 1)
+         self.cv.notify()
+         return True
+      elif prior < 0:
+         set(prior + 1)
+         Thread(target=self.serve, args=(True,)).start()
       return False
 
+   # Changes the total and senior TA surplus by the provided deltas threadsafely.
    def changeSurplus(self, totalChange, seniorChange):
       with self.cv:
          print 'Requirement change: ({0}, {1}).'.format(totalChange, seniorChange)
