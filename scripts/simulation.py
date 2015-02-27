@@ -1,6 +1,7 @@
 from threading import Timer, Thread, Lock, Condition
 from time import sleep
-from Queue import Queue
+#from Queue import Queue
+from collections import deque
 from data import QueueData
 from sys import stdout
 from random import random, randint
@@ -15,13 +16,16 @@ SPEED_FACTOR = 9 * 60 * 2
 SENIOR_FACTOR = 1.5
 
 # Odds that the 2-minute queue will take precedence over the 10 minute.
-TWO_MIN_PREF = 2.5
+TWO_MIN_PREF = 1.5
+TWO_MIN_WAIT_THRESHOLD = 10 * 60 * 1000
+TEN_MIN_WAIT_THRESHOLD = 40 * 60 * 1000
 
+# seconds real time
 def getHelpTime(queueType):
    if queueType == '2':
-      return randint(4, 9)
+      return randint(4, 9) * 60
    else:
-      return randint(7, 15)
+      return randint(7, 15) * 60
 
 class Report:
    def __init__(self, requests):
@@ -65,8 +69,8 @@ class Report:
 class DoubleQueue:
    def __init__(self):
       self.queues = {
-         '2': Queue(),
-         '10': Queue()
+         '2': deque(),
+         '10': deque()
       }
       self.lock = Lock()
 
@@ -76,32 +80,46 @@ class DoubleQueue:
          return self._unsafe_empty()
 
    # Dequeue and return a single request from one of the queues.
-   def get(self):
+   def get(self, report):
+      # Return the current wait time of the oldest request in the queue with
+      # given type.
+      def wait(queue_type):
+         delta = datetime.now() - report.time_in[self.queues[queue_type][0]]
+         return delta.seconds + float(delta.microseconds) / 1000000
+
       with self.lock:
          if self._unsafe_empty():
             return None
-         if self.queues['2'].empty():
-            return self.queues['10'].get()
-         elif self.queues['10'].empty():
-            return self.queues['2'].get()
-         else:
-            # Both queues have pending requests. Choose randomly according to
-            # configurable odds.
-            twoMinWait = 
+         if len(self.queues['2']) == 0:
+            return self.queues['10'].popleft()
+         elif len(self.queues['10']) == 0:
+            return self.queues['2'].popleft()
+         else:  # Neither queue is empty.
+
+            #Serve a queue if it really needs it.
+            twoMinCrisis = wait('2') > float(TWO_MIN_WAIT_THRESHOLD) / SPEED_FACTOR
+            tenMinCrisis = wait('10') > float(TEN_MIN_WAIT_THRESHOLD) / SPEED_FACTOR
+            if twoMinCrisis and not tenMinCrisis:
+               return self.queues['2'].popleft()
+            if tenMinCrisis and not twoMinCrisis:
+               return self.queues['10'].popleft()
+
+            # Either both or neither queues is in dire need. Choose randomly
+            # according to customizable odds.
             if random() < 1.0 / (TWO_MIN_PREF + 1):
-               return self.queues['10'].get()
+               return self.queues['10'].popleft()
             else:
-               return self.queues['2'].get()
+               return self.queues['2'].popleft()
 
    # Enqueue the request in the appropriate queue.
    def put(self, request):
       with self.lock:
-         self.queues[request.queue_type].put(request)
+         self.queues[request.queue_type].append(request)
 
    # Returns true if both queues are empty, false otherwise. Does not acquire
    # lock before check.
    def _unsafe_empty(self):
-      return self.queues['2'].empty() and self.queues['10'].empty()
+      return len(self.queues['2']) == 0 and len(self.queues['10']) == 0
 
 class Simulator:
    # Stores the given list of data.QueueRequest objects. 'finishedCallback' is a
@@ -138,7 +156,7 @@ class Simulator:
             if self._handleSurplus(senior):
                print 'TA finishing shift.'
                return
-            request = self.queue.get()
+            request = self.queue.get(self.report)
          if request != None:
             self.requestsLeft -= 1
             print '   served request %s. %d requests left.' % (request, self.requestsLeft)
