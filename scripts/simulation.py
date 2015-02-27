@@ -3,7 +3,7 @@ from time import sleep
 from Queue import Queue
 from data import QueueData
 from sys import stdout
-from random import random
+from random import random, randint
 from datetime import datetime, timedelta
 
 # Simulation speed multiplier. 1 is real time, which would take roughly 9 hours
@@ -15,7 +15,13 @@ SPEED_FACTOR = 9 * 60 * 2
 SENIOR_FACTOR = 2
 
 # Odds that the 2-minute queue will take precedence over the 10 minute.
-TWO_MIN_PREF = 1
+TWO_MIN_PREF = 1.5
+
+def getHelpTime(queueType):
+   if queueType == '2':
+      return randint(4, 9)
+   else:
+      return randint(7, 15)
 
 class Report:
    def __init__(self, requests):
@@ -42,11 +48,12 @@ class Report:
             file.write(line + '\n')
       requests = sorted(self.served, key=lambda req : self.time_in[req])
       first = min([ self.time_in[req] for req in requests ])
-      write('request\ttime in\ttime out')
+      #write('request\ttime in\ttime out')
       for req in requests:
          adjIn = self._adjust(self.time_in[req], first)
          adjOut = self._adjust(self.time_out[req], first)
-         write('\t'.join(map(str, [req, adjIn, adjOut])))
+         #write('\t'.join(map(str, [req, adjIn, adjOut])))
+         write(str(adjOut - adjIn))
 
    # Convert a simulation 'time' record into real seconds since 'offset' (also
    # in simulation time).
@@ -137,7 +144,10 @@ class Simulator:
             # Help the student for exactly the amount of time for that queue
             # (2 minutes or 10 minutes).
             self.report.recordTimeOut(request)
-            sleep(float(request.queue_type) * 60 / SPEED_FACTOR / SENIOR_FACTOR)
+            workingTime = float(getHelpTime(request.queue_type)) * 60 / SPEED_FACTOR
+            if senior:
+               workingTime /= SENIOR_FACTOR
+            sleep(workingTime)
 
       # No more requests are coming, so every TA should exit.
       with self.cv:

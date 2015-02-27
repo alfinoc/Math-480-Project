@@ -1,4 +1,4 @@
-from random import choice, randint, gammavariate
+from random import choice, randint, gammavariate, shuffle
 from conf import *
 
 NUM_CLASSES = range(2, 4)
@@ -23,6 +23,26 @@ def blackoutTTh(preferences, hour):
 def normalize(vector):
    m = max(vector)
    return map(lambda x : float(x) / m, vector)
+
+# Pick a random ranking (1 to 7) of preferred days of the week, then multiply
+# each day's preference vector by a coefficient (rank / maxrank).
+def tierDays(preferences):
+   def zeroOut(l):
+      for i in range(len(l)):
+         l[i] = 0
+   maxRank = len(preferences.keys())
+   ordering = [ float(i) / maxRank for i in range(1, maxRank + 1) ]
+   shuffle(ordering)
+   lol = randint(1, maxRank)
+   i = 0
+   for day in preferences:
+      if i != lol:
+         zeroOut(preferences[day])
+      i += 1
+   #for day in preferences:
+   #   tier = ordering.pop()
+   #   preferences[day] = map(lambda val : tier * val, preferences[day])
+
 
 # Returns a preference dict, with day keys and hour list values. All preference
 # values are initially one.
@@ -72,6 +92,7 @@ def getRandomTAPreferenceMap():
       vect = preferenceVector(hours, randint(1, hours - 1))
       for i in range(hours):
          prefs[day][i] *= vect[i]
+   tierDays(prefs)
    return prefs
 
 # Converts the preference map to a simple list of hours, based on alphabetically
