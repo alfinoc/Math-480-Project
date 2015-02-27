@@ -12,10 +12,10 @@ SPEED_FACTOR = 9 * 60 * 2
 
 # Senior TA speed multiplier (how much faster senior TAs serve students than
 # normal TAs). 1 is the same amount of time as regular TAs.
-SENIOR_FACTOR = 2
+SENIOR_FACTOR = 1.5
 
 # Odds that the 2-minute queue will take precedence over the 10 minute.
-TWO_MIN_PREF = 1.5
+TWO_MIN_PREF = 2.5
 
 def getHelpTime(queueType):
    if queueType == '2':
@@ -87,6 +87,7 @@ class DoubleQueue:
          else:
             # Both queues have pending requests. Choose randomly according to
             # configurable odds.
+            twoMinWait = 
             if random() < 1.0 / (TWO_MIN_PREF + 1):
                return self.queues['10'].get()
             else:
@@ -144,7 +145,7 @@ class Simulator:
             # Help the student for exactly the amount of time for that queue
             # (2 minutes or 10 minutes).
             self.report.recordTimeOut(request)
-            workingTime = float(getHelpTime(request.queue_type)) * 60 / SPEED_FACTOR
+            workingTime = float(getHelpTime(request.queue_type)) / SPEED_FACTOR
             if senior:
                workingTime /= SENIOR_FACTOR
             sleep(workingTime)

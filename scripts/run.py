@@ -15,7 +15,6 @@ try:
    if not day in DAY_NAMES:
       usageError()
 except:
-   print e
    usageError()
 
 quotas = json.load(open('data/quotas.txt'))
