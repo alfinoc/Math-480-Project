@@ -4,23 +4,19 @@ from time import sleep
 from collections import deque
 from data import QueueData
 from sys import stdout
-from random import random, randint
+from random import randint
 from datetime import datetime, timedelta
 
 # Simulation speed multiplier. 1 is real time, which would take roughly 9 hours
 # for a typical day's worth of data.
-SPEED_FACTOR = 9 * 60
+SPEED_FACTOR = 9 * 60 * 2
 
 # Senior TA speed multiplier (how much faster senior TAs serve students than
 # normal TAs). 1 is the same amount of time as regular TAs.
 SENIOR_FACTOR = 1.5
 
-# Odds that the 2-minute queue will take precedence over the 10 minute.
-TWO_MIN_PREF = 1.5
-TWO_MIN_WAIT_THRESHOLD = 10 * 60 * 1000
-TEN_MIN_WAIT_THRESHOLD = 40 * 60 * 1000
-
-# seconds real time
+# Returns a service time for a request in give queueType (either '2' or '10')
+# in seconds real time.
 def getHelpTime(queueType):
    if queueType == '2':
       return randint(3, 5) * 60
@@ -28,6 +24,7 @@ def getHelpTime(queueType):
       return randint(7, 10) * 60
 
 class Report:
+   # Initializes the report to store information about the given requests.
    def __init__(self, requests):
       self.served = list(requests)
       self.time_in = {}
@@ -67,19 +64,21 @@ class Report:
       return simSeconds * SPEED_FACTOR
 
 class DoubleQueue:
-   def __init__(self):
+   def __init__(self, breakTies):
       self.queues = {
          '2': deque(),
          '10': deque()
       }
       self.lock = Lock()
+      self.breakTies = breakTies
 
    # Returns true if both queues are empty, false otherwise.
    def empty(self):
       with self.lock:
          return self._unsafe_empty()
 
-   # Dequeue and return a single request from one of the queues.
+   # Dequeue and return a single request from one of the queues. The report should
+   # contain a time_in entry for every request currently in the queue. 
    def get(self, report):
       # Return the current wait time of the oldest request in the queue with
       # given type.
@@ -90,25 +89,13 @@ class DoubleQueue:
       with self.lock:
          if self._unsafe_empty():
             return None
-         if len(self.queues['2']) == 0:
+         elif len(self.queues['2']) == 0:
             return self.queues['10'].popleft()
          elif len(self.queues['10']) == 0:
             return self.queues['2'].popleft()
-         else:  # Neither queue is empty.
-            #Serve a queue if it really needs it.
-            twoMinCrisis = wait('2') > float(TWO_MIN_WAIT_THRESHOLD) / SPEED_FACTOR
-            tenMinCrisis = wait('10') > float(TEN_MIN_WAIT_THRESHOLD) / SPEED_FACTOR
-            if twoMinCrisis and not tenMinCrisis:
-               return self.queues['2'].popleft()
-            if tenMinCrisis and not twoMinCrisis:
-               return self.queues['10'].popleft()
-
-            # Either both or neither queues is in dire need. Choose randomly
-            # according to customizable odds.
-            if random() < 1.0 / (TWO_MIN_PREF + 1):
-               return self.queues['10'].popleft()
-            else:
-               return self.queues['2'].popleft()
+         else:
+            return self.queues[self.breakTies(wait('2') * SPEED_FACTOR,
+                                              wait('10') * SPEED_FACTOR)].popleft()
 
    # Enqueue the request in the appropriate queue.
    def put(self, request):
@@ -121,10 +108,12 @@ class DoubleQueue:
       return len(self.queues['2']) == 0 and len(self.queues['10']) == 0
 
 class Simulator:
-   # Stores the given list of data.QueueRequest objects. 'finishedCallback' is a
-   # function of one argument that is called with the completed report object.
-   def __init__(self, requests):
-      self.queue = DoubleQueue()
+   # Stores the given list of data.QueueRequest objects. 'breakTies' is a function of two
+   # arguments (two minute wait time, ten minute queue wait time) called with the wait
+   # times of the head of either queue whenever both queues contain members and we need
+   # to choose which one to dequeue from. Should return either '2' or '10'.
+   def __init__(self, requests, breakTies):
+      self.queue = DoubleQueue(breakTies)
       self.buffer = sorted(requests, key=lambda req : req.time_in)
       self.buffer.reverse()
       self.cv = Condition()
@@ -188,7 +177,6 @@ class Simulator:
          return deltas
       timers = []
       deltas = zip(getDeltas(totalReqs), getDeltas(seniorReqs))
-      print 'deltas', deltas
       hour = 1
       for total, senior in deltas:
          time = float(hour * 3600) / SPEED_FACTOR
