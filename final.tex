@@ -33,40 +33,32 @@ In recent years, enrollment in the University of Washington's introductory compu
 
 The introductory programming lab (IPL) in Mary Gates Hall is a two room computer lab open from 12:30pm to 9:30pm every week day and from 1:30pm to 3:30pm on Saturday and Sunday. Students in CSE 142 and 143 can come to the lab during these hours to be helped with conceptual and homework questions by whichever TAs are currently staffed. A queuing system in the lab allows a student to add him/herself to a help queue through a web interface. The process for a working TA is then straightforward: he/she dequeues a student and helps the student one-on-one for 2 to 10 minutes. A TA typically signs up for 2 one-hour schedule slots each week, so that the number of TAs in the lab ranges from as few as 1 or 2 on weekends to as many as 7 on busy weekday evenings.
 
+As it stands, the CSE department's approach to IPL staffing is not scalable. At a meeting with all sixty-seven TAs in attendance, the TA coordinator put the entire IPL schedule up on a projector screen, and proceed to call on each TA in order from most to least senior. Each TA responds with his/her top choice among time slots not taken, and the TA coordinator tentatively schedules that choice. Toward the end of the process, when younger TAs are predictably choosing from among the least popular time slots, conflicts inevitably arise. Resolution usually requires that TAs volunteer to swap assignments, and coordinators negotiate the schedule switches in real time. The approach is ultimately effective, but fails to capture more nuanced TA preferences and becomes increasingly unmanageable with large TA numbers.
+
 \section*{Objective}
 
-At a high level, \textit{our goal is to schedule TA IPL shifts such that minimum and maximum staffing requirements are met and TA preferences are accomodated as much as possible}. The CSE department has a number of easily formalized requirements for staffing, including minimum numbers of total and senior TAs required for each time slot. A \textit{senior TA} is a TA that has instructed for at least three quarters.
+At a high level, \textit{our goal was to schedule TA IPL shifts such that minimum and maximum staffing requirements are met and TA preferences are accommodated as much as possible}. The CSE department has a number of easily formalized requirements for staffing, including minimum numbers of total and senior TAs required for each time slot. A \textit{senior TA} is a TA that has instructed for at least three quarters. For our main problem, we assumed that the departments quotas for TAs at each time slot were set in stone.
 
-As a stretch goal, our model would minimize student wait time by additionally determining optimal staffing requirements for each time slot. The CS department has already done some work to accommodate varying student demand across the week. For instance, more students arrive at the IPL during the hours before important due dates, so more TAs are staffed during these hours. Over the past couple years, data has been collected about the frequency of CSE 142 and 143 student questions at various times of the day.
+TAs have some preferences that cannot be ignored in scheduling hours. Each student has hours that they cannot work (during class, for instance), and also preferences about when they'd like to work. As a goal, we would like to maximize TA preference accommodation, splitting ties according to TA seniority (number of quarters taught). These preferences must be balanced, however, with the need to compose groups of ideally mixed seniority during key hours. Before a particularly tough CSE 143 assignment, it is essential that more experienced TAs are present to field questions and help less experienced TAs. These factors are weighed into the objective function in a way that is customizable in the future.
 
-TAs have some preferences that cannot be ignored in scheduling hours. Each student has hours that they cannot work (during class, for instance), and also preferences about when they'd like to work. As a goal, we would like to maximize TA preference accommodation, splitting ties according to TA seniority (number of quarters taught). These preferences must be balanced, however, with the need to compose groups of ideally mixed seniority during key hours. Before a particularly tough CSE 143 assignment, it is essential that more experienced TAs are present to field questions and help less experienced TAs. These factors should we weighted into the objective function in a way that is customizable in the future.
+As a stretch goal, we sought to provide a simulation tool to model IPL queue behavior with the hope that such a tool would provide a way to evaluate different sets of staffing requirements. A good set of quotas minimizes queue response time, but the problem is complicated by various factors: how much does the presence of senior TAs affect service time? what is the best dequeuing policy when faced with 2-minute and 10-minute queues that are both full? The CS department has already done some work to accommodate varying student demand across the week. More students arrive at the IPL during the hours before important due dates for instance, so more TAs are staffed during these hours. Over the past couple years, data has been collected about the frequency of CSE 142 and 143 student questions at various times of the day.
 
 \section*{Approach}
-In some ways, this is a standard linear programming problem, similar to scheduling problems we've already seen in class. For the LP formulation below, data will come in the form of:
-\begin{enumerate}
-    \item TA preference/schedule requirements, where each TA provides a real number from 0 to 1 (unavailable to available) for each time slot.
-    \item TA experience levels, including number of quarters TA'd for each of CSE 142 and 143.
-    \item CSE Department requirements for minimum and maximum number of total and senior TAs needed for each slot.
-\end{enumerate}
+Our primary objective above (TA schedule assignments) translates immediately to a standard linear programming problem, similar to scheduling problems we've already seen in class.
 
-Data category (1) above has not been collected by the department, since CSE has never attempted to computationally schedule TAs. Here dummy data will need to be generated, but determining random, typical schedules for TAs should not be difficult. Categories (2) and (3) are known; CSE tracks TA experience levels and time slot requirements already.
-
-The precise formulation of the LP model is described below. It makes use of several known constants: the minimum total and senior TAs required per time slot. The CSE department has already estimated these lower bounds from the number of student questions per hour, and their estimates should work fine for initial solutions of our LP. In order to generate potentially better estimates, we plan to build a simulation. The ultimate goal of the simulation is to better understand the relationship between TA staffing bounds and student wait time.
-
-Similar to how the American West researchers discovered additional features of airplane boarding queueing behavior by constructing a simulation, we hope to gain insights into the causes of IPL queue backlog. It is possible, for instance, that staffing fewer, experienced TAs moves the student queue faster than many, less experienced TAs, since average help time could be minimized. We will attempt to simulate queue behavior during a particularly busy IPL shift (the final hours of Thursday night immediately before a due date, perhaps), varying the number of normal and senior TAs present, and observing changes in wait time.
 
 \section*{Basic LP}
-Our problem can be formulated as a general assignment problem, with $m$ TAs as supply points and $n$ time slots as demand points. Under this formulation, we let $x_{ij}$ be a 0-1 variable where $x_{ij} = 1$ if TA $i$ works time slot $j$ and $x_{ij} = 0$ otherwise.
+Our problem can be formulated as a general assignment problem, with $m$ TAs and $n$ time slots. Under this formulation, we let $x_{ij}$ be a 0-1 variable where $x_{ij} = 1$ if TA $i$ works time slot $j$ and $x_{ij} = 0$ otherwise.
 
 For each TA $i$, let $s_i = 1$ if TA $i$ is a senior TA, 0 otherwise. Each TA must work at least two hours each week and can work up to a self-imposed maximum $m_i$ hours. As undergraduate UW employees, TAs cannot legally work more than 19.5 hours. Formally for each TA $i$,
 
 \begin{equation}
-2 \leq \sum_{j=1}^{n}x_{ij} \leq m_i \leq 19
+2 \leq \sum_{j=1}^{n}x_{ij} \leq min(m_i, 19.5)
 \end{equation}
 
-Time slot preferences introduce an addition contraint. In particular, if real number $a_{ij} \in [0,1]$ represents the availability preference of TA $i$ at slot $j$, then if $a_{ij} = 0$, we intrepret this preference as absolute: the TA \textit{cannot} work the time slot, so should not be scheduled for that slot. Imposing the data format requirement that TA preferences under 0.01 are considered 0, we can use the usual techniques for translating
+Time slot preferences introduce an addition constraint. In particular, if real number $a_{ij} \in [0,1]$ represents the availability preference of TA $i$ at slot $j$, then if $a_{ij} = 0$, we interpret this preference as absolute: the TA \textit{cannot} work the time slot, so should not be scheduled for that slot. Imposing the data format requirement that TA preferences under 0.01 are considered 0, we can use the usual techniques for translating
 \begin{equation}
-x_{ij} = 1 \textrm{ iff } 0 < a_{ij}
+x_{ij} = 1 \textrm{ only if } 0 < a_{ij}
 \end{equation}
 into
 \begin{equation}
@@ -80,20 +72,37 @@ t_j \leq \sum_{i=1}^{m}x_{ij} \leq T_j
 \end{equation}
 
 \begin{equation}
-u_j \leq \sum_{i=1}^{m}x_{ij}s_i
+u_j \leq \sum_{i=1}^{m}x_{ij}s_i.
 \end{equation}
 
-Unlike a general transportation problem, we are not simply minimizing supply usage. After all, TAs may in fact \textit{wish} to work more hours, and since the CSE department has money to spare on staffing costs, we can assume that the department is willing to pay to staff as many as $T_j$ TAs in each slot. The total adherence to the preferences of TA $i$ is:
+Unlike a general assignment problem, we are not simply minimizing TA usage. After all, TAs may in fact \textit{wish} to work more hours, and since the CSE department has money to spare on staffing costs, we can assume that the department is willing to pay to staff as many as $T_j$ TAs in each slot. The total adherence to the preferences of TA $i$ is:
 
 \begin{equation}
-a(i) = \sum_{j=1}^na_{ij}x_{ij}
+a(i) = \sum_{j=1}^na_{ij}x_{ij}.
 \end{equation}
 
 For each TA $i$, let $q_i$ be the number of quarters that TA has taught (a measure of seniority). Our objective function is a measure of total TA preference, weighted by TA seniority:
 
 \begin{equation}
-\textrm{maximize } \sum_{i=1}^mq_i\cdot a(i)
+\textrm{maximize } \sum_{i=1}^mq_i\cdot a(i).
 \end{equation}
+
+\section*{LP Implementation}
+
+The SageMath system provides a \texttt{MixedIntegerLinearProgram} object that precisely fits our needs. Each constraint above translates immediately to a block of code in the short Sage script \texttt{lp.sage}. The formulation coded there uses the values mentioned above, but makes use of three important data input sets: staff quotas, preference lists, and seniority measurements. We focused our research on the Autumn 2014, so all these types of data are based on that term.
+
+Staff quotas vary considerably quarter-to-quarter and are typically determined by assuming that each TA will work two hours a week, then loosely distributing $2n$ working hours across the week according to student question frequency. Figure ? shows the quotas from Autumn 2014 that we used for our simulation, along with a chart of question frequency per hour and day. The CSE 143 assignment due date is perhaps the most important explanation for the spike in demand on Thursday afternoons. Unsurprisingly, the most difficult problems often come from 143 students right before their due dates, so we concentrate senior TA quotas around this period as well.
+
+Random, plausible TA preference generation was a more involved process. As described above, complete TA preferences are only approximated in the current assignment system and never been collected from TAs with the numerical precision of the $a_ij$ values in our LP. In future terms, the department would need to collect this information using some kind of survey. For testing purposes, though, we attempted to generate preference lists.
+
+For each TA, we first generate a preference map, a Python \texttt{dict} from \texttt{day} to \texttt{list} of preference values between 0 and 1. Each list contains the preferences for that day of the week, one value per time slot. When determining preferences, we attempt to capture the following trends:
+- TAs likely have a top time slot that they'd like to work on any given day. Generally, working a time slot closer to this slot is preferable.
+- TAs likely have a ranking of preferable days in mind (e.g. Wednesday, Monday, etc. from most to least preferable).
+- Since most TAs are taking three or four classes per term, each will have hours that they absolutely cannot work.
+
+The Python code for preference generation is found in the functions of \texttt{preferences.py}. Python's built-in \texttt{gammavariate} function gives us a satisfactory distribution across each day, visible in the columns of Figure ?. After \texttt{preferenceVector} yields such a preference vector for every day, we zero-out several uniformly random days across the week. And finally, we multiply each day's preference vector by a random rank coefficient in \texttt{tierDays}. As a final step, the preference map is transformed into a preference vector where the ith entry corresponds to the ith time slot in the LP.
+
+As mentioned above, TA seniority is measured in number of quarters taught. These values were provided by the CSE department and read into our Sage program as a simple list of integers. Because TA preferences are randomly generated, the pairing of seniority value to preference vector was done arbitrarily.
 
 \section*{Solution}
 

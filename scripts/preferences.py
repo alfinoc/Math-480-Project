@@ -33,16 +33,9 @@ def tierDays(preferences):
    maxRank = len(preferences.keys())
    ordering = [ float(i) / maxRank for i in range(1, maxRank + 1) ]
    shuffle(ordering)
-   lol = randint(1, maxRank)
-   i = 0
    for day in preferences:
-      if i != lol:
-         zeroOut(preferences[day])
-      i += 1
-   #for day in preferences:
-   #   tier = ordering.pop()
-   #   preferences[day] = map(lambda val : tier * val, preferences[day])
-
+      tier = ordering.pop()
+      preferences[day] = map(lambda val : tier * val, preferences[day])
 
 # Returns a preference dict, with day keys and hour list values. All preference
 # values are initially one.

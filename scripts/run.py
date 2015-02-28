@@ -30,13 +30,20 @@ quotas = json.load(open('data/quotas.txt'))
 senior = quotas['senior'][day]
 regular = diff(quotas['total'][day], senior)
 requests = QueueData(filename).byWeek()[week][day]
-tieBreakingPolicy = crisisThresholdsAndFlip(10 * 60, 40 * 60, 1.5)
-sim = Simulator(requests, tieBreakingPolicy)
-outFile = open("{0}_{1}_{2}.results".format(filename, week, day), 'w')
 
-# Report the results to the open file.
-def reportResults(report):
-   report.printTSV(outFile)
+# Run the simulation with above configuration 'trial' number of times.
+def runSim(trials):
+   sim = Simulator(requests)
+   outFile = open("data/results/{0}_{1}_{2}_delays.results".format(week, day, trials), 'w')
 
-# Run the simulation.
-sim.run(reportResults, regular, senior)
+   # Report the results to the open file.
+   def reportResults(report):
+      report.printTSV(outFile)
+      if trials > 1:
+         runSim(trials - 1)
+
+   # Run the simulation.
+   tieBreakingPolicy = crisisThresholdsAndFlip(10 * 60, 40 * 60, 1.5)
+   sim.run(reportResults, tieBreakingPolicy, regular, senior)
+
+runSim(100)

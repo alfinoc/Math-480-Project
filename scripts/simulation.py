@@ -1,6 +1,5 @@
 from threading import Timer, Thread, Lock, Condition
 from time import sleep
-#from Queue import Queue
 from collections import deque
 from data import QueueData
 from sys import stdout
@@ -19,9 +18,9 @@ SENIOR_FACTOR = 1.5
 # in seconds real time.
 def getHelpTime(queueType):
    if queueType == '2':
-      return randint(3, 5) * 60
+      return randint(3, 6) * 60
    else:
-      return randint(7, 10) * 60
+      return randint(8, 12) * 60
 
 class Report:
    # Initializes the report to store information about the given requests.
@@ -108,26 +107,30 @@ class DoubleQueue:
       return len(self.queues['2']) == 0 and len(self.queues['10']) == 0
 
 class Simulator:
-   # Stores the given list of data.QueueRequest objects. 'breakTies' is a function of two
-   # arguments (two minute wait time, ten minute queue wait time) called with the wait
-   # times of the head of either queue whenever both queues contain members and we need
-   # to choose which one to dequeue from. Should return either '2' or '10'.
-   def __init__(self, requests, breakTies):
-      self.queue = DoubleQueue(breakTies)
+   # Stores the given list of data.QueueRequest objects. 
+   def __init__(self, requests):
       self.buffer = sorted(requests, key=lambda req : req.time_in)
       self.buffer.reverse()
       self.cv = Condition()
       self.requestsLeft = 0
 
    # Run simulation threads.
-   def run(self, finishedCallback, totalReqts, seniorReqts):
+   # 'finishedCallback' is called once when all simulation
+   #    threads finish.
+   # 'breakTies' is a function of two arguments (two minute wait time, ten minute queue
+   #    wait time) called with the wait times of the head of either queue whenever both
+   #    queues contain members and we need to choose which one to dequeue from. Should
+   #    return either '2' or '10'.
+   # 'regularReqts' and 'seniorReqts' are lists of required regular and senior TAs for
+   #    time slot, sorted in lists by hour.
+   def run(self, finishedCallback, breakTies, regularReqts, seniorReqts):
+      self.queue = DoubleQueue(breakTies)
       self.report = Report(self.buffer)
       self.finished = finishedCallback
       self.regularSurplus = 0
       self.seniorSurplus = 0
-      timers = self.scheduleRequests() + self.scheduleReqtChanges(totalReqts, seniorReqts)
-      print 'Timers scheduled.'
-      initialRegular = totalReqts[0]
+      timers = self.scheduleRequests() + self.scheduleReqtChanges(regularReqts, seniorReqts)
+      initialRegular = regularReqts[0]
       initialSenior = seniorReqts[0]
       for i in range(initialRegular + initialSenior):
          Thread(target=self.serve, args=(i >= initialRegular,)).start()
@@ -136,9 +139,7 @@ class Simulator:
 
    # Attempt to serve incoming requests until none are left.
    def serve(self, senior=False):
-      with self.cv:
-         print '{0} TA beginning shift.'.format('Senior' if senior else 'Normal')
-
+      print '{0} TA beginning shift'.format('Senior' if senior else 'Normal') 
       while self.requestsLeft > 0:
          with self.cv:
             while self.queue.empty() and self.requestsLeft > 0:
@@ -168,7 +169,7 @@ class Simulator:
    # Schedule changes in the number of TAs required at various times in the day.
    # Each returned timer fires at a certain hour, incrementing or decrementing the
    # total or senior TA requirements.
-   def scheduleReqtChanges(self, totalReqs, seniorReqs):
+   def scheduleReqtChanges(self, regularReqts, seniorReqs):
       # Returns a sequence of differences between consecutive elements in 'reqs'.
       def getDeltas(reqs):
          deltas = []
@@ -176,7 +177,7 @@ class Simulator:
             deltas.append(reqs[i - 1] - reqs[i])
          return deltas
       timers = []
-      deltas = zip(getDeltas(totalReqs), getDeltas(seniorReqs))
+      deltas = zip(getDeltas(regularReqts), getDeltas(seniorReqs))
       hour = 1
       for total, senior in deltas:
          time = float(hour * 3600) / SPEED_FACTOR
@@ -184,9 +185,10 @@ class Simulator:
          hour += 1
       return timers
 
-   # If a TA surplus is positive, decrements it and returns True. If a TA surplus
-   # is negative, increments it, spins up a new TA thread, and returns False. If
-   # the surplus is 0, returns False.
+   # If any surplus (senior or regular) is greater than 0, spins up that many
+   # worker threads and resets surpluses to 0. If either surplus is positive,
+   # then the current worker resets a surplus to 0 (whichever matches it's type)
+   # and returns True. Otherwise returns False.
    def _handleSurplus(self, senior):
       # Create TA threads to satisfy needs.
       while self.seniorSurplus < 0:
