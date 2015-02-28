@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 # Simulation speed multiplier. 1 is real time, which would take roughly 9 hours
 # for a typical day's worth of data.
-SPEED_FACTOR = 9 * 60 * 2
+SPEED_FACTOR = 9 * 60
 
 # Senior TA speed multiplier (how much faster senior TAs serve students than
 # normal TAs). 1 is the same amount of time as regular TAs.
@@ -23,9 +23,9 @@ TEN_MIN_WAIT_THRESHOLD = 40 * 60 * 1000
 # seconds real time
 def getHelpTime(queueType):
    if queueType == '2':
-      return randint(4, 9) * 60
+      return randint(3, 5) * 60
    else:
-      return randint(7, 15) * 60
+      return randint(7, 10) * 60
 
 class Report:
    def __init__(self, requests):
@@ -95,7 +95,6 @@ class DoubleQueue:
          elif len(self.queues['10']) == 0:
             return self.queues['2'].popleft()
          else:  # Neither queue is empty.
-
             #Serve a queue if it really needs it.
             twoMinCrisis = wait('2') > float(TWO_MIN_WAIT_THRESHOLD) / SPEED_FACTOR
             tenMinCrisis = wait('10') > float(TEN_MIN_WAIT_THRESHOLD) / SPEED_FACTOR
@@ -148,13 +147,15 @@ class Simulator:
 
    # Attempt to serve incoming requests until none are left.
    def serve(self, senior=False):
-      print '{0} TA beginning shift.'.format('Senior' if senior else 'Normal')
+      with self.cv:
+         print '{0} TA beginning shift.'.format('Senior' if senior else 'Normal')
+
       while self.requestsLeft > 0:
          with self.cv:
             while self.queue.empty() and self.requestsLeft > 0:
                self.cv.wait()
             if self._handleSurplus(senior):
-               print 'TA finishing shift.'
+               print '{0} TA finishing shift'.format('Senior' if senior else 'Normal')
                return
             request = self.queue.get(self.report)
          if request != None:
@@ -187,6 +188,7 @@ class Simulator:
          return deltas
       timers = []
       deltas = zip(getDeltas(totalReqs), getDeltas(seniorReqs))
+      print 'deltas', deltas
       hour = 1
       for total, senior in deltas:
          time = float(hour * 3600) / SPEED_FACTOR
@@ -198,25 +200,21 @@ class Simulator:
    # is negative, increments it, spins up a new TA thread, and returns False. If
    # the surplus is 0, returns False.
    def _handleSurplus(self, senior):
-      # Get the surplus of the current TA type.
-      def get():
-         return self.seniorSurplus if senior else self.regularSurplus
-
-      # Set the surplus of the current TA type to the given value.
-      def set(val):
-         if senior:
-            self.seniorSurplus = val
-         else:
-            self.regularSurplus = val
-
-      prior = get()
-      if prior > 0:
-         set(prior - 1)
-         self.cv.notify()
-         return True
-      elif prior < 0:
-         set(prior + 1)
+      # Create TA threads to satisfy needs.
+      while self.seniorSurplus < 0:
+         self.seniorSurplus += 1
          Thread(target=self.serve, args=(True,)).start()
+      while self.regularSurplus < 0:
+         self.regularSurplus += 1
+         Thread(target=self.serve, args=(False,)).start()
+
+      # Return true to indicate "leaving work" if no longer needed.
+      if self.seniorSurplus > 1 and senior:
+         self.seniorSurplus -= 1
+         return True
+      if self.regularSurplus > 1 and not senior:
+         self.regularSurplus -= 1
+         return True
       return False
 
    # Changes the total and senior TA surplus by the provided deltas threadsafely.
