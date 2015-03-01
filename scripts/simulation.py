@@ -76,10 +76,10 @@ class DoubleQueue:
       with self.lock:
          return self._unsafe_empty()
 
-   # Dequeue and return a single request from one of the queues. The report should
-   # contain a time_in entry for every request currently in the queue. 
+   # Dequeue and return a single request from one of the queues. The report
+   # should contain a time_in entry for every request currently in the queue. 
    def get(self, report):
-      # Return the current wait time of the oldest request in the queue with
+      # Returns the current wait time of the oldest request in the queue with
       # given type.
       def wait(queue_type):
          delta = datetime.now() - report.time_in[self.queues[queue_type][0]]
@@ -93,8 +93,9 @@ class DoubleQueue:
          elif len(self.queues['10']) == 0:
             return self.queues['2'].popleft()
          else:
-            return self.queues[self.breakTies(wait('2') * SPEED_FACTOR,
-                                              wait('10') * SPEED_FACTOR)].popleft()
+            choice = self.breakTies(wait('2')  * SPEED_FACTOR,
+                                    wait('10') * SPEED_FACTOR)
+            return self.queues[choice].popleft()
 
    # Enqueue the request in the appropriate queue.
    def put(self, request):
@@ -117,19 +118,20 @@ class Simulator:
    # Run simulation threads.
    # 'finishedCallback' is called once when all simulation
    #    threads finish.
-   # 'breakTies' is a function of two arguments (two minute wait time, ten minute queue
-   #    wait time) called with the wait times of the head of either queue whenever both
-   #    queues contain members and we need to choose which one to dequeue from. Should
-   #    return either '2' or '10'.
-   # 'regularReqts' and 'seniorReqts' are lists of required regular and senior TAs for
-   #    time slot, sorted in lists by hour.
+   # 'breakTies' is a function of two arguments (two minute wait time, ten
+   #    minute queue wait time) called with the wait times of the head of either
+   #    queue whenever both queues contain requests. Should return either '2' or
+   #    '10' to indicate the queue from which to dequeue.
+   # 'regularReqts' and 'seniorReqts' are lists of required regular and senior
+   #    TAs for time slot, sorted in lists by hour.
    def run(self, finishedCallback, breakTies, regularReqts, seniorReqts):
       self.queue = DoubleQueue(breakTies)
       self.report = Report(self.buffer)
       self.finished = finishedCallback
       self.regularSurplus = 0
       self.seniorSurplus = 0
-      timers = self.scheduleRequests() + self.scheduleReqtChanges(regularReqts, seniorReqts)
+      timers = self.scheduleRequests()
+      timers += self.scheduleReqtChanges(regularReqts, seniorReqts)
       initialRegular = regularReqts[0]
       initialSenior = seniorReqts[0]
       for i in range(initialRegular + initialSenior):
@@ -139,20 +141,29 @@ class Simulator:
 
    # Attempt to serve incoming requests until none are left.
    def serve(self, senior=False):
-      print '{0} TA beginning shift'.format('Senior' if senior else 'Normal') 
+      # Print a message above a TA beginning or ending work.
+      def printChange(action):
+         print '{0} TA {1}.'.format('Senior' if senior else 'Normal', action) 
+
+      # Print a message noting that the given request has been served.
+      def printServed(request):
+         params = (request, self.requestsLeft)
+         print 'served request %s. %d requests left.' % params
+
+      printChange('beginning')
       while self.requestsLeft > 0:
          with self.cv:
             while self.queue.empty() and self.requestsLeft > 0:
                self.cv.wait()
             if self._handleSurplus(senior):
-               print '{0} TA finishing shift'.format('Senior' if senior else 'Normal')
+               printChange('finishing')
                return
             request = self.queue.get(self.report)
          if request != None:
             self.requestsLeft -= 1
-            print '   served request %s. %d requests left.' % (request, self.requestsLeft)
-            # Help the student for exactly the amount of time for that queue
-            # (2 minutes or 10 minutes).
+            printServed(request)
+            # Help the student for exactly the amount of time for that queue (2
+            # minutes or 10 minutes).
             self.report.recordTimeOut(request)
             workingTime = float(getHelpTime(request.queue_type)) / SPEED_FACTOR
             if senior:
@@ -167,10 +178,10 @@ class Simulator:
          self.finished = lambda x : None
 
    # Schedule changes in the number of TAs required at various times in the day.
-   # Each returned timer fires at a certain hour, incrementing or decrementing the
-   # total or senior TA requirements.
+   # Each returned timer fires at a certain hour, incrementing or decrementing
+   # the regular or senior TA requirements.
    def scheduleReqtChanges(self, regularReqts, seniorReqs):
-      # Returns a sequence of differences between consecutive elements in 'reqs'.
+      # Returns a sequence of differences between consecutive elts in 'reqs'.
       def getDeltas(reqs):
          deltas = []
          for i in range(1, len(reqs)):
@@ -207,17 +218,16 @@ class Simulator:
          return True
       return False
 
-   # Changes the total and senior TA surplus by the provided deltas threadsafely.
+   # Changes the total and senior TA surplus by the provided deltas.
    def changeSurplus(self, totalChange, seniorChange):
       with self.cv:
-         print 'Requirement change: ({0}, {1}).'.format(totalChange, seniorChange)
+         print 'Staffing change: ({0}, {1}).'.format(totalChange, seniorChange)
          self.regularSurplus += totalChange
          self.seniorSurplus += seniorChange
 
    # Schedules the request times. Returns a list of timers, one per request.
    # Once started, each request is made at the times specified in the request's
    # 'time_in' field relative to the first request (which is made immediately).
-   # Time is scaled according to SPEED_FACTOR.
    def scheduleRequests(self):
       if len(self.buffer) == 0:
          raise ValueError('No requests to schedule!')

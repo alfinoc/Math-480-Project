@@ -22,8 +22,8 @@ class QueueData:
       self.requests = map(self._parseLine, lines[1:])
 
    # Returns an array of maps, one map per week starting at the beginning of the
-   # data set. Each map is keyed on day names and each value is a list of requests
-   # for that day sorted on request time.
+   # data set. Each map is keyed on day names and each value is a list of
+   # requests for that day sorted on request time.
    def byWeek(self):
       # Start at the beginning of the first day.
       first = datetime.combine(self.requests[0].time_in.date(), datetime.min.time())

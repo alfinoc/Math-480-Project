@@ -46,4 +46,4 @@ def runSim(trials):
    tieBreakingPolicy = crisisThresholdsAndFlip(10 * 60, 40 * 60, 1.5)
    sim.run(reportResults, tieBreakingPolicy, regular, senior)
 
-runSim(100)
+runSim(1)

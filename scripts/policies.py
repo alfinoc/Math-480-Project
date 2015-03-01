@@ -1,9 +1,9 @@
 from random import random
 
-# Returns a 'break ties' function for the simulator that chooses to dequeue
-# from the 2 or 10 minute queue if either is above given thresholds. If
-# neither or both is above given thresholds, the 'break ties' function returns
-# a random choice, with odds 'twoMinPref':1 in favor of the 2-min queue.
+# Returns a 'break ties' function for the simulator that chooses to dequeue from
+# the 2 or 10 minute queue if either is above given thresholds. If neither or
+# both is above given thresholds, the 'break ties' function returns a random
+# choice, with odds 'twoMinPref':1 in favor of the 2-min queue.
 def crisisThresholdsAndFlip(twoMinWaitTreshold, tenMinWaitThreshold, twoMinPref):
    def breakTies(twoMinWait, tenMinWait):
       twoMinCrisis = twoMinWait > float(twoMinWaitTreshold)

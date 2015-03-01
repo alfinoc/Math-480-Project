@@ -1,5 +1,5 @@
-# Returns a list of pairs (delta, event time), where delta is either 1 or -1
-# to indicate a request entering or exiting the queue at that event time.
+# Returns a list of pairs (delta, event time), where delta is either 1 or -1 to
+# indicate a request entering or exiting the queue at that event time.
 def changes(requests):
    ins = map(lambda req : (1, req.time_in), requests)
    outs = map(lambda req : (-1, req.time_out), requests)
