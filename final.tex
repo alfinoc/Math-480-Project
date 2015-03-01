@@ -7,7 +7,6 @@
 
 \titleformat{\section}
   {\large\scshape\filcenter}{\thesection}{}{}
-\def\arraystretch{1.5}%
 
 \begin{document}
 
@@ -53,7 +52,7 @@ Our problem can be formulated as a general assignment problem, with $m$ TAs and 
 For each TA $i$, let $s_i = 1$ if TA $i$ is a senior TA, 0 otherwise. Each TA must work at least two hours each week and can work up to a self-imposed maximum $m_i$ hours. As undergraduate UW employees, TAs cannot legally work more than 19.5 hours. Formally for each TA $i$,
 
 \begin{equation}
-2 \leq \sum_{j=1}^{n}x_{ij} \leq min(m_i, 19.5)
+2 \leq \sum_{j=1}^{n}x_{ij} \leq \textrm{min}(m_i, 19.5)
 \end{equation}
 
 Time slot preferences introduce an addition constraint. In particular, if real number $a_{ij} \in [0,1]$ represents the availability preference of TA $i$ at slot $j$, then if $a_{ij} = 0$, we interpret this preference as absolute: the TA \textit{cannot} work the time slot, so should not be scheduled for that slot. Imposing the data format requirement that TA preferences under 0.01 are considered 0, we can use the usual techniques for translating
@@ -89,23 +88,58 @@ For each TA $i$, let $q_i$ be the number of quarters that TA has taught (a measu
 
 \section*{LP Implementation}
 
-The SageMath system provides a \texttt{MixedIntegerLinearProgram} object that precisely fits our needs. Each constraint above translates immediately to a block of code in the short Sage script \texttt{lp.sage}. The formulation coded there uses the values mentioned above, but makes use of three important data input sets: staff quotas, preference lists, and seniority measurements. We focused our research on the Autumn 2014, so all these types of data are based on that term.
+Sage's \texttt{MixedIntegerLinearProgram} precisely fits our needs. Each constraint above translates immediately to a block of code in the short Sage script \texttt{lp.sage}. The formulation coded there uses the values mentioned above, but makes use of three important data input sets: staff quotas, preference lists, and seniority measurements. We focused our research on the Autumn 2014, so all these types of data are based on that term.
 
 Staff quotas vary considerably quarter-to-quarter and are typically determined by assuming that each TA will work two hours a week, then loosely distributing $2n$ working hours across the week according to student question frequency. Figure ? shows the quotas from Autumn 2014 that we used for our simulation, along with a chart of question frequency per hour and day. The CSE 143 assignment due date is perhaps the most important explanation for the spike in demand on Thursday afternoons. Unsurprisingly, the most difficult problems often come from 143 students right before their due dates, so we concentrate senior TA quotas around this period as well.
 
-Random, plausible TA preference generation was a more involved process. As described above, complete TA preferences are only approximated in the current assignment system and never been collected from TAs with the numerical precision of the $a_ij$ values in our LP. In future terms, the department would need to collect this information using some kind of survey. For testing purposes, though, we attempted to generate preference lists.
+Random, plausible TA preference generation was a more involved process. As described above, complete TA preferences are only approximated in the current assignment system and never been collected from TAs with the numerical precision of the $a_{ij}$ values in our LP. In future terms, the department would need to collect this information using some kind of survey. For testing purposes, we attempted to generate random preference lists for each TA, capturing for the following trends:
+\begin{itemize}
+   \item TAs likely have a top time slot that they'd like to work on any given day. Generally, working a time slot closer to this slot is preferable.
+   \item TAs likely have a ranking of preferable days in mind (e.g. Wednesday, Monday, etc. from most to least preferable).
+   \item Since most TAs are taking three or four classes per term, each will have hours that they absolutely cannot work.
+\end{itemize}
 
-For each TA, we first generate a preference map, a Python \texttt{dict} from \texttt{day} to \texttt{list} of preference values between 0 and 1. Each list contains the preferences for that day of the week, one value per time slot. When determining preferences, we attempt to capture the following trends:
-- TAs likely have a top time slot that they'd like to work on any given day. Generally, working a time slot closer to this slot is preferable.
-- TAs likely have a ranking of preferable days in mind (e.g. Wednesday, Monday, etc. from most to least preferable).
-- Since most TAs are taking three or four classes per term, each will have hours that they absolutely cannot work.
+For each TA, we first generate a preference map, a Python \texttt{dict} from \texttt{day} to \texttt{list} of preference values between 0 and 1. Each list contains the preferences for that day of the week, one value per time slot.
 
-The Python code for preference generation is found in the functions of \texttt{preferences.py}. Python's built-in \texttt{gammavariate} function gives us a satisfactory distribution across each day, visible in the columns of Figure ?. After \texttt{preferenceVector} yields such a preference vector for every day, we zero-out several uniformly random days across the week. And finally, we multiply each day's preference vector by a random rank coefficient in \texttt{tierDays}. As a final step, the preference map is transformed into a preference vector where the ith entry corresponds to the ith time slot in the LP.
+The Python code for preference generation is found in the functions of \texttt{preferences.py}. Python's built-in \texttt{gammavariate} function gives us a satisfactory distribution across each day, visible in the columns of Figure ?. After \texttt{preferenceVector} generates this vector, we zero-out several uniformly random days across the week. And finally, we multiply each day's preference vector by a random rank coefficient in \texttt{tierDays}. As a final step, the preference map is transformed into a preference vector where the $i$th entry corresponds to the $i$th time slot in the LP.
 
 As mentioned above, TA seniority is measured in number of quarters taught. These values were provided by the CSE department and read into our Sage program as a simple list of integers. Because TA preferences are randomly generated, the pairing of seniority value to preference vector was done arbitrarily.
 
+\section*{LP Simplifications}
+
+\section*{Simulation}
+
+Evaluation of TA schedule poses a problem: how do we empirically test the quality of a given IPL scheduling? Assuming that the schedule is determined at the beginning of a term, time slot quotas are essentially set in stone for the entire term, and so must be informed by question frequency data from prior terms. With this in mind, the CSE department has been collecting records of student requests in the IPL for several years. Since it is difficult for us to measure the real world quality of our schedule, we instead provide a general tool for simulating the behavior of the queue. Simulation configurations allow the researcher to study differences in queue behavior with respect to different time slot quotas and, perhaps more interestingly, different dequeueing policies.
+
+\subsection*{Implementation}
+
+Our simulation logic is spread across three classes, and follows the basic model of a server program: student \textit{requests} are enqueued and TA \textit{server} threads dequeue and service requests. The \texttt{Simulation} class in {simulation.py} contains the main simulation loop of the program, essentially scheduling events of three types: (1) requests entering the queue (2) TAs dequeuing requests (3) TAs entering or leaving during shift changes. Each TA is modeled as an execution thread that repeatedly dequeues a request, services that request, then waits for another (see \texttt{Simulation.serve}). The arrival of a TA at the IPL translates to the forking of a new TA thread. When no more requests are left to serve or a TA finishes his/her shift, TA threads simply terminate.
+
+For input our simulation takes a sequence of \texttt{data.QueueRequest} objects, each of which is initialized from a line in the data file provided by the CSE department. For each request, we know the enqueue time, dequeue time, and type of the queue entered (2 or 10 minute). The department has additional information, like the course (either CSE 142 or 143) and assignment about which the request was made, but in our current simulation, these factors are irrelevant.
+
+In our initial testing, we were mostly concerned with the waittime per request: how long did the request wait in the queue before a TA dequeued the request and began servicing? Thus the output of our program is a tab-separated sequence of actual request logs, where the simulation enqueue and dequeue times are recorded for each request. Result reporting logic is found allocated to the {Report} class, in order to make output more configurable for other tests.
+
+\subsection*{Configurations}
+
+Early versions of the Simulation produced output waittimes that differed considerably from real waittimes calculated directly from our Autumn 2014 data. We hypothesized that the simulation's main shortcoming was its inability to encode the decision making process of a TA dequeuing a student. During a particularly busy hour at the IPL, both the 2-minute and 10-minute queues are full of students. When a TA approaches the queue managing software to dequeue a student request, he/she can estimate the size of each queue as well and see each's current waittime. There is no mandated policy for how proceed; instead, a TA needs to make some judgment call about which queue to dequeue from.
+
+Modeling this decision process was a challenge, but we built in a system by which the Simulation can accept an arbitrary \texttt{break ties} procedure. One possible tie-breaking implementation is found and documented in \texttt{policies.py}. With the help of this heuristic, we were able to match real-time waittimes more closely for some days. Figure ? shows the real and simulation waittimes across the first Thursday of the Autumn term.
+
+mention that advantage to heuristic is ease of implementation in real world, too?
+
+\subsection*{Accurate Service Times}
+
+hmm
+
+\subsection*{Simplifications}
+
+service time discussion
+
+It is worth noting that a multi-threaded simulation like ours suffers from complicates concerning the translation of real time event to simulation time event. The program generally measures real time in floating point seconds, scheduling events in simulation time by simply dividing by some constant \texttt{SPEED\_FACTOR}. Since program thread scheduling can be unpredictable, the accuracy of simulation times may depreciate if \texttt{SPEED\_FACTOR} gets too large. Generally we've found that running at 1,080x real time (crunching the 9-hour working day into 30 seconds) is still slow enough that system time measurement discrepancies and program computational time do not affect the results of the experiment. And as one would expect, running many trials removes much of this noise as well.
+
 \section*{Solution}
 
+\def\arraystretch{1.5}
 \begin{table*}[ht]
 \small
    \centering
