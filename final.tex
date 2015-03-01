@@ -42,10 +42,6 @@ TAs have some preferences that cannot be ignored in scheduling hours. Each stude
 
 As a stretch goal, we sought to provide a simulation tool to model IPL queue behavior with the hope that such a tool would provide a way to evaluate different sets of staffing requirements. A good set of quotas minimizes queue response time, but the problem is complicated by various factors: how much does the presence of senior TAs affect service time? what is the best dequeuing policy when faced with 2-minute and 10-minute queues that are both full? The CS department has already done some work to accommodate varying student demand across the week. More students arrive at the IPL during the hours before important due dates for instance, so more TAs are staffed during these hours. Over the past couple years, data has been collected about the frequency of CSE 142 and 143 student questions at various times of the day.
 
-\section*{Approach}
-Our primary objective above (TA schedule assignments) translates immediately to a standard linear programming problem, similar to scheduling problems we've already seen in class.
-
-
 \section*{Basic LP}
 Our problem can be formulated as a general assignment problem, with $m$ TAs and $n$ time slots. Under this formulation, we let $x_{ij}$ be a 0-1 variable where $x_{ij} = 1$ if TA $i$ works time slot $j$ and $x_{ij} = 0$ otherwise.
 
@@ -121,21 +117,25 @@ In our initial testing, we were mostly concerned with the waittime per request: 
 
 \subsection*{Configurations}
 
-Early versions of the Simulation produced output waittimes that differed considerably from real waittimes calculated directly from our Autumn 2014 data. We hypothesized that the simulation's main shortcoming was its inability to encode the decision making process of a TA dequeuing a student. During a particularly busy hour at the IPL, both the 2-minute and 10-minute queues are full of students. When a TA approaches the queue managing software to dequeue a student request, he/she can estimate the size of each queue as well and see each's current waittime. There is no mandated policy for how proceed; instead, a TA needs to make some judgment call about which queue to dequeue from.
+The most important configuration item for the simulation comes in the form of two lists containing the number of regular and senior TA working at each time slot. Varying these numbers will allow for testing of different schedule assignments. The impact of having a senior TA in the IPL is hitherto unknown; it seems plausible that a senior serves requests with more \textit{skill}, but it is not clear if they serve requests with any more \textit{speed}. For the simulations we ran, we assume a modest service speed gain of 1.5x for senior TAs.
 
-Modeling this decision process was a challenge, but we built in a system by which the Simulation can accept an arbitrary \texttt{break ties} procedure. One possible tie-breaking implementation is found and documented in \texttt{policies.py}. With the help of this heuristic, we were able to match real-time waittimes more closely for some days. Figure ? shows the real and simulation waittimes across the first Thursday of the Autumn term.
+Early versions of the simulation produced output waittimes that differed considerably from real waittimes calculated directly from our Autumn 2014 data. We hypothesized that the simulation's main shortcoming was its inability to encode the decision making process of a TA dequeuing a student. During a particularly busy hour at the IPL, both the 2-minute and 10-minute queues are full of students. When a TA approaches the queue managing software to dequeue a student request, he/she can estimate the size of each queue as well and see each's current waittime. There is no mandated policy for how proceed; instead, a TA needs to make some judgment call about which queue to dequeue from.
 
-mention that advantage to heuristic is ease of implementation in real world, too?
+Modeling this decision process was a challenge, but we built in a system by which the simulation can accept an arbitrary \texttt{breakTies} procedure. One possible tie-breaking implementation is found and documented in \texttt{policies.py}. With the help of this heuristic, we were able to match real-time waittimes more closely for some days. Figure ? shows the real and simulation waittimes across the first Thursday of the Autumn term. 
 
-\subsection*{Accurate Service Times}
-
-hmm
+Ultimately an advantage of testable heuristics like \texttt{policies.crisisThresholdsAndFlip} is that they are testable, both in simulation and in the real world. In contrast to the prior approach in which a TA can make his/her own decision about how to address a backlogged queue, a clearly defined policy would allow the CSE department to better anticipate queue behavior under significant traffic.
 
 \subsection*{Simplifications}
 
-service time discussion
+Request service times vary considerably in the IPL, with some students demanding far more time than they are technically allotted, and others requiring only single sentence answers. For now, service time configurations are handled based on anecdotal reports of typical time ranges. \texttt{simulation.getHelpTime} samples service times from uniform distributions with constant bounds.
 
-It is worth noting that a multi-threaded simulation like ours suffers from complicates concerning the translation of real time event to simulation time event. The program generally measures real time in floating point seconds, scheduling events in simulation time by simply dividing by some constant \texttt{SPEED\_FACTOR}. Since program thread scheduling can be unpredictable, the accuracy of simulation times may depreciate if \texttt{SPEED\_FACTOR} gets too large. Generally we've found that running at 1,080x real time (crunching the 9-hour working day into 30 seconds) is still slow enough that system time measurement discrepancies and program computational time do not affect the results of the experiment. And as one would expect, running many trials removes much of this noise as well.
+However, in an effort to address this considerable simplification, we can lean on basic queue theory. Given some interval of queue operation, let $L_s$ be the average number of waiting requests and let $\lambda$ be the arrival rate of requests. If $W_s$ is the average service time across our interval, we can compute it as,
+\begin{equation}
+W_s = \frac{L_w}{\lambda}.
+\end{equation}
+The utilities in \texttt{queue.py} aid in the computation of these values, but the problem is complicated by the fact that the 2-minute and 10-minute queues presumably have fundamentally different service time distributions. Our recommendation is that service times be recorded directly from the IPL queue-managing software in order to get a more accurate get a sense of how service times vary across the day and across each queue.
+
+Finally, it is worth noting that a multi-threaded simulation like ours suffers from complicates concerning the translation of real time event to simulation time event. The program generally measures real time in floating point seconds, scheduling events in simulation time by simply dividing by some constant \texttt{SPEED\_FACTOR}. Since program thread scheduling can be unpredictable, the accuracy of simulation times may depreciate if \texttt{SPEED\_FACTOR} gets too large. Generally we've found that running at 1,080x real time (crunching the 9-hour working day into 30 seconds) is still slow enough that system time measurement discrepancies and program computational time do not affect the results of the experiment. And as one would expect, running many trials removes much of this noise as well.
 
 \section*{Solution}
 
