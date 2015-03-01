@@ -1,8 +1,8 @@
 from data import QueueData
 from sys import argv
 
-data = QueueData(argv[1]).byWeek()
+data = QueueData('data/fall_queue_data.tsv').byWeek()
 
-for d in data[0]['Thursday']:
-   print (d.time_out - d.time_in).seconds
+delays = data[0]['Thursday']
+print ' '.join([ str((i + 1, (delays[i].time_out - delays[i].time_in).seconds)) for i in range(len(delays)) ])
 

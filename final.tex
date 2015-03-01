@@ -2,7 +2,7 @@
 \usepackage{multicol}
 \usepackage{titlesec}
 \usepackage[margin=0.75in]{geometry}
-
+\usepackage{pgfplots}
 % MACROS %
 
 \titleformat{\section}
@@ -136,7 +136,29 @@ W_s = \frac{L_w}{\lambda}.
 The utilities in \texttt{queue.py} aid in the computation of these values, but the problem is complicated by the fact that the 2-minute and 10-minute queues presumably have fundamentally different service time distributions. Our recommendation is that service times be recorded directly from the IPL queue-managing software in order to get a more accurate get a sense of how service times vary across the day and across each queue.
 
 Finally, it is worth noting that a multi-threaded simulation like ours suffers from complicates concerning the translation of real time event to simulation time event. The program generally measures real time in floating point seconds, scheduling events in simulation time by simply dividing by some constant \texttt{SPEED\_FACTOR}. Since program thread scheduling can be unpredictable, the accuracy of simulation times may depreciate if \texttt{SPEED\_FACTOR} gets too large. Generally we've found that running at 1,080x real time (crunching the 9-hour working day into 30 seconds) is still slow enough that system time measurement discrepancies and program computational time do not affect the results of the experiment. And as one would expect, running many trials removes much of this noise as well.
-
+\begin{figure*}[ht]
+   \pgfplotsset{tick label style={font=\footnotesize},
+      label style={font=\small},
+      legend style={font=\small},
+      width=14cm,
+      height=7cm
+   }
+   \begin{tikzpicture}
+      \begin{axis}[
+         ylabel=Delay (seconds),
+         xlabel=Request,
+         bar width=1pt,
+         enlarge x limits=0.05,
+         enlarge y limits=0.05,
+         ybar
+      ]
+      \addplot+[draw=white, fill=black] coordinates
+      {(1, 140) (2, 449) (3, 888) (4, 1119) (5, 1283) (6, 1099) (7, 2071) (8, 1439) (9, 1550) (10, 1023) (11, 3393) (12, 3435) (13, 2991) (14, 758) (15, 3021) (16, 2858) (17, 2658) (18, 808) (19, 865) (20, 1461) (21, 2459) (22, 1244) (23, 1144) (24, 1321) (25, 584) (26, 1513) (27, 2240) (28, 670) (29, 1644) (30, 810) (31, 374) (32, 1317) (33, 134) (34, 688) (35, 785) (36, 809) (37, 1881) (38, 86) (39, 93) (40, 428) (41, 104) (42, 46) (43, 78) (44, 201) (45, 97) (46, 96) (47, 61) (48, 80) (49, 8) (50, 66) (51, 43) (52, 31) (53, 27) (54, 83) (55, 28) (56, 36) (57, 32) (58, 116) (59, 126) (60, 233) (61, 165) (62, 186) (63, 205) (64, 190) (65, 340) (66, 327) (67, 495) (68, 398) (69, 282) (70, 680) (71, 264) (72, 428) (73, 654) (74, 696) (75, 519) (76, 555) (77, 649) (78, 52) (79, 811) (80, 909) (81, 387) (82, 848) (83, 712) (84, 673) (85, 628) (86, 661) (87, 623) (88, 746) (89, 889) (90, 552) (91, 194) (92, 335) (93, 398) (94, 350) (95, 267) (96, 20) (97, 78) (98, 70) (99, 15) (100, 22) (101, 15) (102, 73) (103, 129) (104, 191) (105, 137) (106, 71) (107, 39) (108, 26) (109, 14) (110, 13) (111, 11) (112, 18) (113, 32) (114, 117) (115, 113) (116, 42) (117, 49) (118, 9) (119, 13) (120, 6) (121, 19) (122, 16) (123, 207) (124, 12) (125, 110) (126, 42) (127, 70) (128, 11) (129, 12) (130, 15) (131, 23) (132, 17) (133, 21) (134, 62) (135, 44) (136, 40) (137, 13) (138, 19) (139, 32) (140, 188) (141, 225) (142, 13) (143, 31) (144, 19) (145, 15) (146, 19) (147, 11) (148, 18) (149, 38) (150, 16) (151, 33) (152, 139) (153, 130) (154, 16) (155, 26) (156, 14) (157, 20) (158, 52) (159, 24) (160, 87) (161, 20) (162, 75) (163, 43) (164, 53) (165, 16) (166, 23) (167, 41) (168, 45) (169, 21) (170, 24) (171, 58) (172, 98) (173, 38) (174, 20) (175, 33) (176, 28) (177, 19) (178, 12) (179, 15) (180, 15) (181, 8) (182, 13) (183, 24) (184, 64) (185, 15) (186, 10) (187, 13) (188, 8) (189, 15) (190, 13)};
+   \end{axis}
+\end{tikzpicture}
+   \caption{this is the caption}
+   
+\end{figure*}
 \section*{Solution}
 
 \def\arraystretch{1.5}

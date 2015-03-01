@@ -4,8 +4,8 @@ prefs = json.load(open('prefs.txt'))
 quotas = json.load(open('quotas.txt'))
 seniority = json.load(open('seniority.txt'))
 
-# All constant values for a given LP configuration. Some are loaded from configuration
-# files, while other constants are included as literals below.
+# All constant values for a given LP configuration. Some are loaded from
+# configuration files, while other constants are included as literals below.
 PARAMS = {
     'min_hours_per_ta': 2,
     'max_hours_per_ta': 19,
@@ -64,11 +64,10 @@ for i in range(PARAMS['num_tas']):
     problem.add_constraint(hours <= PARAMS['max_hours_per_ta'])
 
 # Maximize total adherence to TA preference, weighted by TA seniority.
-adherence = lambda ta : sum([ PARAMS['ta_preference'][ta][i] * slots[i][ta] for i in slotIndicies ])
+adherence = lambda ta : sum([ PARAMS['ta_preference'][ta][j] * slots[j][ta] for j in slotIndicies ])
 problem.set_objective(sum([ PARAMS['quarters_taught'][i] * adherence(i) for i in taIndicies ]))
 
 # Print solution schedule assignment.
 problem.solve()
-solution = []
 for s in slotIndicies:
     print s, filter(lambda ta : problem.get_values(slots[s])[ta] != 0, taIndicies)
