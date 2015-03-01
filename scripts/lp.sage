@@ -4,8 +4,8 @@ prefs = json.load(open('prefs.txt'))
 quotas = json.load(open('quotas.txt'))
 seniority = json.load(open('seniority.txt'))
 
-# All constant values for a given LP configuration. Some are loaded from
-# configuration files, while other constants are included as literals below.
+# All constant values for a given LP configuration. Some are loaded from configuration
+# files, while other constants are included as literals below.
 PARAMS = {
     'min_hours_per_ta': 2,
     'max_hours_per_ta': 19,
@@ -52,7 +52,7 @@ for i in range(len(slots)):
     problem.add_constraint(PARAMS["min_required_total"][i] <= working)
     problem.add_constraint(working <= PARAMS["max_allowed_total"][i])
 
-# Add scheduler preferences for min/max required/allowed senior TAs per slot.
+# Add scheduler preferences for min required senior TAs per slot.
 for i in range(len(slots)):
     working = totalTAsWorking(i, True)
     problem.add_constraint(PARAMS["min_required_senior"][i] <= working)
@@ -62,6 +62,13 @@ for i in range(PARAMS['num_tas']):
     hours = totalHours(i)
     problem.add_constraint(PARAMS['min_hours_per_ta'] <= hours)
     problem.add_constraint(hours <= PARAMS['max_hours_per_ta'])
+
+# Add constraints for hours that TAs absolutely cannot work.
+for i in range(PARAMS['num_tas']):
+    for j in range(len(slots)):
+        if (PARAMS['ta_preference'][i][j] == 0.0):
+            problem.add_constraint(slots[j][i] == 0)
+
 
 # Maximize total adherence to TA preference, weighted by TA seniority.
 adherence = lambda ta : sum([ PARAMS['ta_preference'][ta][j] * slots[j][ta] for j in slotIndicies ])

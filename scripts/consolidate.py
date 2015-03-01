@@ -25,5 +25,4 @@ def mean(vectors):
 
 # Print 
 delays = mean(map(toVector, argv[1:]))
-for d in delays:
-   print d
+print map(lambda i : (i + 1, delays[i] / 60), range(len(delays)))
