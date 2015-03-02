@@ -7,6 +7,7 @@
 
 \titleformat{\section}
   {\large\scshape\filcenter}{\thesection}{}{}
+\graphicspath{ {pretty_code/} }
 
 \begin{document}
 
@@ -161,7 +162,7 @@ Finally, it is worth noting that a multithreaded simulation like ours suffers fr
 
 \section*{Related Work}
 
-The research report, \textiit{Mathematics and Science Teacher Shortage: Fact and Myth} by Ingersoll, Perda of University of Pennsylvania, examines staffing of mathematics and science teachers at the University in order to determine whether or not there is a supply-side deficit of staff, and if so, to what extent. The causes of school staffing problems can be approached by two perspectives.
+The research report, \textit{Mathematics and Science Teacher Shortage: Fact and Myth} by Ingersoll, Perda of University of Pennsylvania, examines staffing of mathematics and science teachers at the University in order to determine whether or not there is a supply-side deficit of staff, and if so, to what extent. The causes of school staffing problems can be approached by two perspectives.
 
 First researchers outline a causal progression from increased student enrollment, deficiency in teachers, and institutional staffing issues to inevitably decreased student performance. The second examines the issue from an organizational perspective, showing that if issues of teacher turnover and staffing problems are not properly addressed through policy, student performance will decrease. It is important to note that there is a distinction between these two perspectives — one is dependent on enrollment, while the other is dependent on the organizational structure of the institution. 
 
@@ -220,6 +221,12 @@ Applying this to our problem, we see that two of the three considerations are me
       \end{axis}
    \end{tikzpicture}
    \caption{\small{Simulation results for the same day as in Figure ?. Response times are averages from 100 simulation runs, each of which was run at 1,080x real time. Differences between observed and simulation wait times are likely the result of oversimplifications in our simulated dequeue and service policies.}}
+\end{figure*}
+
+\begin{figure*}
+\centering
+\includegraphics[scale=0.25]{pref_graphic.png}
+\caption{A sample randomly generated preference map for one TA. Lighter colors represent preferred time slots, while darker slots are less prefered. Completely backed out time slots are those in which the TA cannot work at all. Note that several hours on Monday, Wednesday, and Friday are blacked out (mimicking a typical UW schedule) and that typical preferences center around a ``favorite'' time slot.}
 \end{figure*}
 
 \def\arraystretch{1.5}
