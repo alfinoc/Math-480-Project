@@ -20,6 +20,11 @@
 \date{}
 
 \maketitle
+\renewcommand{\abstractname}{}
+\begin{abstract}
+Teaching assistant coordinators for the introductory computer science courses at the UW wish to determine staffing assignments for the introductory programming lab, a tutoring lab for students in CSE 142 and 143. Our goal was to assign every teaching assistant to a certain number of lab time slots across the week. Two sets of considerations are accounted for: minimum and maximum staffing requirements as determined by the CSE department and TA work schedule preferences. We apply standard linear programming techniques to this assignment problem, generating solutions in a manner that will scale with the constantly growing TA numbers in UW CSE. Finally, we provide a simulation tool to automate evaluation of future schedules and various other lab management policies.
+\end{abstract}
+
 \noindent\makebox[\linewidth]{\rule{\textwidth}{0.4pt}}
 
 \setlength\columnsep{0.45in}
@@ -154,6 +159,12 @@ While the wait times in Figures ? and ? match closely, our simulation failed to 
 
 Finally, it is worth noting that a multithreaded simulation like ours suffers from complicates concerning the translation of real event timing to simulation event timing. The program generally measures real time in floating point seconds, scheduling events in simulation time by simply dividing by a constant \texttt{SPEED\_FACTOR}. Since program thread scheduling can be unpredictable, the accuracy of our simulation times may depreciate if \texttt{SPEED\_FACTOR} gets too large. Generally we've found that running at 1,080x real time (crunching the 9-hour working day into 30 seconds) is still slow enough that system time measurement discrepancies and program computational time do not affect the results of the experiment. And as one would expect, running many trials removes much of this noise as well.
 
+\section*{Related Work}
+
+The research report, Mathematics and Science Teacher Shortage: Fact and Myth by Ingersoll, Perda of University of Pennsylvania, reexamines the issue of mathematics and science teachers to evaluate whether or not there is a supply-side deficit of staff, and if so, to what extent. The causes of school staffing problems can be realized by two perspectives to illustrate its consequences. The first presents itself as a causal progression from increased student enrollment, deficiency in teachers, and institution staffing issues which inevitably leads to decreased student performance. The second, also a causal progression, examines the issue from an organizational perspective, which if its issues of teacher turnover and staffing problems are not properly addressed, will also cause a decrease in student performance. It is important to note that there is a distinction between these two perspectives—one which is dependent on enrollment, while the other is dependent on the organizational structure of the institution. Relevancy can be drawn from both perspectives when applied to our problem. For example, the initial perspective presented suggests that the more students who enroll in the CSE 14X series, the more TA’s need to be hired, or else we may be faced with a supply-deficit of TA’s which cannot properly accommodate the volume of students. Another approach is to view our problem from the organizational perspective: how can we optimize TA scheduling for better student-TA experience?
+
+Our model assumes that seniority is measured by the amount of quarters an individual has taught. It is important to note that our metric for seniority cannot truly capture the experience level of an individual, even though correlations can be drawn. These subtleties are realized in the paper, Perception of Adequacy by Schmalenberg, Kramer. The paper entails that the adequacy of staffing is dependent on the [TA’s] perceptions of the work environment in the unit. There are three main points to consider: competency of the staff, teamwork, and a flexible delivery system. Applying this to our problem, we see that two of the three considerations are met—seniority of staff, as well as a dynamic delivery system for students to ask questions. If we choose to take teamwork into consideration, pairing two TA’s to answer one request could improve delay times—as one may be more akin to spotting issues quicker than another. Complexity rises when these constraints are implemented into our current model, but these are remarks which require further reexamining in the future when more data sets are accessible.
+
 \section*{Conclusion}
 
 \begin{figure*}[ht]
@@ -210,28 +221,57 @@ Finally, it is worth noting that a multithreaded simulation like ours suffers fr
 \small
    \centering
    \begin{tabular}{ l | c | c | c | c | c }
-      & Monday & Tuesday & Wednesday & Thursday & Friday \\ \hline
-      12:30 & 24, 31, 52 & 7, 18, 38 & 55, 58 & 55, 66 & 44, 57, 66 \\
-      1:30 & 19, 35 & 1, 36, 49 & 25, 52 & 16, 39 & 62 \\
-      2:30 & 10, 35, 64 & 0, 1, 49, 61 & 5, 15, 50 & 2, 6, 39, 60 & 24, 36, 62 \\
-      3:30 & 4, 18, 23, 27 & 0, 1, 10, 37, 61 & 4, 20, 25, 50 & 19, 60, 65 & 20, 26, 33 \\
-      4:30 & 3, 23, 27, 34 & 0, 1, 43 & 4, 5, 8, 13 & 2, 5, 6, 16, 48 & 26, 53, 56 \\
-      5:30 & 3, 30, 32 &  & 8, 9, 13, 22 & 2, 14, 28, 40 & 11, 33 \\
-      6:30 & 3, 12, 34 & 0, 29, 41, 59 & 9, 22, 46 & 14, 28, 40, 54 &  \\
-      7:30 & 45, 51 & 37, 43, 53 & 15, 21, 46 & 6, 11, 63, 65 &  \\
-      8:30 & 45, 51 & 29, 41, 59 & 21, 32 & 47, 54, 58 &  \\
+& Monday & Tuesday & Wednesday & Thursday & Friday \\ \hline
+12:30 & 1, 52, 64 & 18, 38, 56 & 55, 66 & 55, 66 & 9, 18, 59 \\
+1:30 & 10, 19 & 36, 49, 53 & 25, 52 & 16, 47 & 62 \\
+2:30 & 10, 35, 64 & 0, 1, 49, 56 & 5, 13, 15 & 5, 6, 29, 47 & 24, 33, 62 \\
+3:30 & 23, 27, 39, 51 & 0, 1, 36, 37, 53 & 4, 7, 20, 25 & 16, 28, 60 & 20, 26, 33 \\
+4:30 & 8, 23, 27, 35 & 0, 1, 43 & 4, 5, 15, 59 & 6, 14, 28, 60, 65 & 34, 45, 50 \\
+5:30 & 30, 32, 39 &  & 4, 8, 13, 26 & 14, 19, 40, 44 & 3, 24 \\
+6:30 & 12, 51, 54 & 0, 29, 37, 41 & 11, 21, 46 & 38, 40, 44, 48 &  \\
+7:30 & 54, 63 & 22, 34, 43 & 7, 46, 63 & 3, 17, 61, 65 &  \\
+8:30 & 45, 50 & 3, 22, 41 & 11, 21 & 2, 58, 61 &  \\
    \end{tabular}
    \\[10pt]
    \centering
    \begin{tabular}{ l | c | c }   
-      & Saturday & Sunday \\ \hline
-      1:30 & 7, 38, 63 & 12, 42, 44 \\
-      2:30 & 42 & 48 \\
-      3:30 & 30, 31 & 17, 57 \\
-      4:30 & 47, 56 & 17, 64 \\
+& Saturday & Sunday \\ \hline
+1:30 & 9, 30, 32 & 6, 12, 17 \\
+2:30 & 42 & 48 \\
+3:30 & 31, 42 & 57, 58 \\
+4:30 & 2, 31 & 2, 57 \\
    \end{tabular}
    \\[10pt]
    \caption{Time slot assignments for the sixty-seven TAs working during Autumn 2014. Each cell contains the TAs assigned to a given hour on a given day. This solution was produced with 2 TAs wanting 4 hours, 5 TAs wanting 3 hours, and the remaining TAs wanting the minimum 2 hours of work per week.}
 \end{table*}
+
+\begin{table*}[ht]
+\small
+   \centering
+   \begin{tabular}{ l | c | c | c | c | c }
+& Monday & Tuesday & Wednesday & Thursday & Friday \\ \hline
+12:30 & 1 & 3 & 2 & 1 & 1 \\
+1:30 & 2 & 3 & 2 & 2 & 1 \\
+2:30 & 3 & 4 & 3 & 4 & 3 \\
+3:30 & 4 & 5 & 4 & 3, 1 & 3 \\
+4:30 & 4 & 3 & 4 & 5, 2 & 3 \\
+5:30 & 3 & 0 & 4 & 4, 2 & 2 \\
+6:30 & 3 & 4 & 3, 1 & 4, 2 &  \\
+7:30 & 2 & 3 & 3, 1 & 4, 2 &  \\
+8:30 & 2 & 3 & 2, 1 & 3, 1 &  \\
+   \end{tabular}
+   \\[10pt]
+   \centering
+   \begin{tabular}{ l | c | c } 
+& Saturday & Sunday \\ \hline
+1:30 & 1 & 1 \\
+2:30 & 1 & 1 \\
+3:30 & 2 & 2 \\
+4:30 & 2 & 2 \\
+   \end{tabular}
+   \\[10pt]
+   \caption{Minimum numbers of total TAs required for each time slot. Most time slots do not require the presence of a senior TA, but where a certain number of seniors is required, we write a pair of counts: minimum total TA count followed by minimum senior count.}
+\end{table*}
+
 \end{multicols}
 \end{document}
