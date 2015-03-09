@@ -69,7 +69,6 @@ for i in range(PARAMS['num_tas']):
         if (PARAMS['ta_preference'][i][j] == 0.0):
             problem.add_constraint(slots[j][i] == 0)
 
-
 # Maximize total adherence to TA preference, weighted by TA seniority.
 adherence = lambda ta : sum([ PARAMS['ta_preference'][ta][j] * slots[j][ta] for j in slotIndicies ])
 problem.set_objective(sum([ PARAMS['quarters_taught'][i] * adherence(i) for i in taIndicies ]))

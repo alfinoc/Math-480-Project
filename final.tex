@@ -36,17 +36,17 @@ Teaching assistant coordinators for the introductory computer science courses at
 
 In recent years, enrollment in the University of Washington's introductory computer science classes, CSE 142 and CSE 143, has skyrocketed. Students are interested in programming for a variety of reasons; industry and academic research positions abound, while programming skills are becoming increasingly necessary in other disciplines around campus. In Winter 2014, CSE 142 and 143 each hit new enrollment records: 810 and 530 students respectively! In order to meet new demand, CSE 142 and 143 have needed to scale their educational efforts. Requisite hiring of undergraduate teaching assistants has increased in proportion with enrollment, with each TA-lead discussion section containing roughly 20 students.
 
-The introductory programming lab (IPL) in Mary Gates Hall is a two room computer lab open from 12:30pm to 9:30pm every week day and from 1:30pm to 3:30pm on Saturday and Sunday. Students in CSE 142 and 143 can come to the lab during these hours to be helped with conceptual and homework questions by whichever TAs are currently staffed. A queuing system in the lab allows a student to add him/herself to a help queue through a web interface. The process for a working TA is then straightforward: he/she dequeues a student and helps the student one-on-one for 2 to 10 minutes. A TA typically signs up for 2 one-hour schedule slots each week, so that the number of TAs in the lab ranges from as few as 1 or 2 on weekends to as many as 7 on busy weekday evenings.
+The introductory programming lab (IPL) in Mary Gates Hall is a two room computer lab open from 12:30pm to 9:30pm every week day and from 1:30pm to 3:30pm on Saturday and Sunday. Students in CSE 142 and 143 can come to the lab during these hours to be helped with conceptual and homework questions by whichever TAs are currently staffed. A queuing system in the lab allows students to add themselves to a help queue through a web interface. The process for a working TA is then straightforward: he or she dequeues a student and helps the student one-on-one for 2 to 10 minutes. A TA typically signs up for 2 one-hour schedule slots each week, so that the number of TAs in the lab ranges from as few as 1 or 2 on weekends to as many as 7 on busy weekday evenings.
 
-As it stands, the CSE department's approach to IPL staffing is not scalable. At a meeting with all sixty-seven TAs in attendance, the TA coordinators display the entire IPL schedule up on a projector screen and proceed to call on each TA in order from most to least senior. Each TA responds with his/her top choice among time slots not taken, and the TA coordinator tentatively schedules that choice. Toward the end of the process, when younger TAs are predictably choosing from among the least popular time slots, conflicts inevitably arise. Resolution usually requires that TAs volunteer to swap assignments, and coordinators negotiate the schedule switches in real time. The approach is ultimately effective, but fails to capture more nuanced TA preferences and becomes increasingly unmanageable with large TA numbers.
+As it stands, the CSE department's approach to IPL staffing is not scalable. At a meeting with all sixty-seven TAs in attendance, the TA coordinators display the entire IPL schedule up on a projector screen and proceed to call on each TA in order from most to least senior. Each TA responds with his or her top choice among time slots not taken, and the TA coordinator tentatively schedules that choice. Toward the end of the process, when younger TAs are predictably choosing from among the least popular time slots, conflicts inevitably arise. Resolution usually requires that TAs volunteer to swap assignments, and coordinators negotiate the schedule switches in real time. The approach is ultimately effective, but fails to capture more nuanced TA preferences and becomes increasingly unmanageable with large TA numbers.
 
 \section*{Objective}
 
-At a high level, \textit{our goal was to schedule TA IPL shifts such that minimum and maximum staffing requirements are met and TA preferences are accommodated as much as possible}. The CSE department has a number of easily formalized requirements for staffing, including minimum numbers of total and senior TAs required for each time slot. A \textit{senior TA} is a TA that has instructed for at least three quarters. For our main problem, we assumed that the departments quotas for TAs at each time slot were set in stone.
+At a high level, \textit{our goal was to schedule TA IPL shifts such that minimum and maximum staffing requirements are met and TA preferences are accommodated as much as possible}. The CSE department has a number of easily formalized requirements for staffing, including minimum numbers of total and senior TAs required for each time slot. A \textit{senior TA} is a TA who has instructed for at least three quarters. For our main problem, we assumed that the department's quotas for TAs at each time slot were set in stone.
 
 TAs have some preferences that cannot be ignored in scheduling hours. Each student has hours that they cannot work (during class, for instance), and also preferences about when they'd like to work. As a goal, we would like to maximize TA preference accommodation, splitting ties according to TA seniority (number of quarters taught). These preferences must be balanced, however, with the need to compose groups of ideally mixed seniority during key hours. Before a particularly tough CSE 143 assignment, it is essential that more experienced TAs are present to field questions and help less experienced TAs. These factors are weighed into the objective function in a way that is customizable in the future.
 
-As a stretch goal, we sought to provide a simulation tool to model IPL queue behavior with the hope that such a tool would provide a way to evaluate different sets of staffing requirements. A good set of quotas minimizes queue response time, but the problem is complicated by various factors: how much does the presence of senior TAs affect service time? what is the best dequeuing policy when faced with 2-minute and 10-minute queues that are both full? The CS department has already done some work to accommodate varying student demand across the week. More students arrive at the IPL during the hours before important due dates for instance, so more TAs are staffed during these hours. Fortunately over the past couple years, data has been collected about the frequency of CSE 142 and 143 student questions at various times of the day.
+As a stretch goal, we sought to provide a simulation tool to model IPL queue behavior with the hope that such a tool would provide a way to evaluate different sets of staffing requirements. A good set of quotas minimizes queue response time, but the problem is complicated by various factors: how much does the presence of senior TAs affect service time? what is the best dequeuing policy when faced with 2-minute and 10-minute queues that are both full? The CS department has already done some work to accommodate varying student demand across the week. More students arrive at the IPL during the hours before important due dates, for instance, so more TAs are staffed during these hours. Fortunately over the past couple years, data about the frequency of CSE 142 and 143 student questions at various times of the day has been collected.
 
 \section*{Basic LP}
 Our problem can be formulated as a general assignment problem, with $m$ TAs and $n$ time slots. Under this formulation, we let $x_{ij}$ be a 0-1 variable where $x_{ij} = 1$ if TA $i$ works time slot $j$ and $x_{ij} = 0$ otherwise.
@@ -57,16 +57,12 @@ For each TA $i$, let $s_i = 1$ if TA $i$ is a senior TA, 0 otherwise. Each TA mu
 2 \leq \sum_{j=1}^{n}x_{ij} \leq \textrm{min}(m_i, 19.5).
 \end{equation}
 
-Time slot preferences introduce an addition constraint. Real number $a_{ij} \in [0,1]$ represents the availability preference of TA $i$ at slot $j$. In particular, if $a_{ij} = 0$, we interpret this preference as absolute: the TA \textit{cannot} work the time slot, so should not be scheduled for that slot. Imposing the data format requirement that TA preferences under 0.01 are considered 0, we can use the usual techniques for translating
+Time slot preferences introduce additional constraints. Real numbers $a_{ij} \in [0,1]$ represent the availability preference of TA $i$ at slot $j$. In particular, if $a_{ij} = 0$, we interpret this preference as absolute. In this case, the TA \textit{cannot} work the time slot, so should not be scheduled for that slot. For each such $a_{ij} = 0$, we impose the constraint
 \begin{equation}
-x_{ij} = 1 \textrm{ only if } 0 < a_{ij}
-\end{equation}
-into
-\begin{equation}
-x_{ij} \leq 100 a_{ij}.
+x_{ij} = 0.
 \end{equation}
 
-For each time slot $j$, let $t_j$ and $u_j$ be the minimum number of total and senior TAs respectively required. Let $T_j$ be the maximum number of TAs allowed for each time slot. Formally for each time slot $j$,
+Now for each time slot $j$, let $t_j$ and $u_j$ be the minimum number of total and senior TAs respectively required. Let $T_j$ be the maximum number of TAs allowed for each time slot. Formally for each time slot $j$,
 
 \begin{equation}
 t_j \leq \sum_{i=1}^{m}x_{ij} \leq T_j
@@ -81,16 +77,15 @@ Unlike a general assignment problem, we are not simply minimizing TA usage. Afte
 \begin{equation}
 a(i) = \sum_{j=1}^na_{ij}x_{ij}.
 \end{equation}
-
 For each TA $i$, let $q_i$ be the number of quarters that TA has taught (a measure of seniority). Our objective function is a measure of total TA preference, weighted by TA seniority:
 
 \begin{equation}
-\textrm{maximize } \sum_{i=1}^mq_i\cdot a(i).
+\textrm{maximize } z = \sum_{i=1}^mq_i\cdot a(i).
 \end{equation}
 
 \section*{LP Implementation}
 
-Sage's \texttt{MixedIntegerLinearProgram} precisely fits our needs. Each constraint above translates immediately to a block of code in the short Sage script \texttt{lp.sage}. The formulation coded there uses the values mentioned above, but makes use of three important data input sets: staff quotas, preference lists, and seniority measurements. We focused our research on the Autumn 2014 term, so all these types of data are based on that quarter.
+Sage's \texttt{MixedIntegerLinearProgram} precisely fits our needs. Each constraint above translates immediately to a block of code in the short Sage script \texttt{lp.sage}. The formulation coded there uses the values mentioned above, but makes use of three important data input sets: staff quotas, preference lists, and seniority measurements. We focused our research on the Autumn 2014 term, so all of our data sets (both generated and gathered) are based on that quarter.
 
 Staff quotas vary considerably quarter-to-quarter and are typically determined by assuming that each TA will work two hours a week. The department loosely distributes $2n$ working hours across the week according to student question frequency. Table 2 shows the quotas from Autumn 2014 that we used for our LP solution. Of note is the spike on Thursday afternoons, a consequence of the CSE 143 assignment due time. Unsurprisingly, the most difficult requests often come from 143 students right before their due dates, so the department concentrates senior TA quotas around this period as well.
 
@@ -115,7 +110,7 @@ Except for the minimum TA quotas per time slot ($t_j$ values above), the LP does
 
 Random preference generation, despite the efforts described above, is still overly simplified. We assume in the generation code that each TA essentially has a ``favorite'' time per week and would prefer hours closer to this slot. But favorite time slots are surely not uniformly random across the TA community; most TAs would likely avoid the IPL shifts around dinner time or in the late evening, for instance. A better representation of typical TA preference would account for subtler distributions of preference across the day and week.
 
-And our scheme for preference reporting is itself fundamentally simplified: it provides no mechanism by which to request consecutive hours \textit{only if they are consecutive}. We assume that TAs can rank each time slot from least to most desirable, when in fact their preferences for time slots may be more complex that a simple $[0, 1]$ rank list can encode. For instance, a TA may wish to work one hour Thursday at 1:00pm but, should that slot not be available, would prefer to work two hours on Friday at 3:00pm. As it stands, the best we can encode this preference is with three relative [0,1] values. In an effort to maximize total preference adherence, our LP may choose only one of the Friday hours, contrary to TA wishes.
+And our scheme for preference reporting is itself fundamentally simplified: it provides no mechanism by which to request consecutive hours \textit{only if they are consecutive}. We assume that TAs can rank each time slot from least to most desirable, when in fact their preferences for time slots may be more complex than a simple $[0, 1]$ rank list can encode. For instance, a TA may wish to work one hour Thursday at 1:00pm but, should that slot not be available, would prefer to work two hours on Friday at 3:00pm. As it stands, the best we can encode this preference is with three relative [0,1] values. In an effort to maximize total preference adherence, our LP may choose only one of the Friday hours, contrary to TA wishes.
 
 \section*{Solution}
 
@@ -131,7 +126,7 @@ Evaluation of our solution poses a problem: how do we empirically test the quali
 
 \subsection*{Implementation}
 
-Our simulation logic is spread across three Python classes, and follows the basic model of a server program: student \textit{requests} are enqueued and TA \textit{server} threads dequeue and service requests. The \texttt{Simulation} class in \texttt{simulation.py} contains the main simulation loop of the program, essentially scheduling events of three types: (1) requests entering the queue (2) TAs dequeuing requests (3) TAs entering or leaving during shift changes. Each TA is modeled as an execution thread that repeatedly dequeues a request, services that request, then waits for another (see \texttt{Simulation.serve}). The arrival of a TA at the IPL translates to the forking of a new TA thread. When no more requests are left to serve or a TA finishes his/her shift, TA threads simply terminate.
+Our simulation logic is spread across three Python classes and follows the basic model of a server program: student \textit{requests} are enqueued and TA \textit{server} threads dequeue and service requests. The \texttt{Simulation} class in \texttt{simulation.py} contains the main simulation loop of the program, essentially scheduling events of three types: (1) requests entering the queue (2) TAs dequeuing requests (3) TAs entering or leaving during shift changes. Each TA is modeled as an execution thread that repeatedly dequeues a request, services that request, then waits for another (see \texttt{Simulation.serve}). The arrival of a TA at the IPL translates to the forking of a new TA thread. When no more requests are left to serve or a TA finishes his or her shift, TA threads simply terminate.
 
 For input our simulation takes a sequence of \texttt{data.QueueRequest} objects, each of which is initialized from a line in a data file provided by the CSE department containing records of every IPL request during the Autumn 2014 term. For each request, we know the enqueue time, dequeue time, and type of the queue entered (2 or 10 minute). The department has additional information, like the course (either CSE 142 or 143) and homework assignment about which the request was made, but in our current simulation, this information is unused.
 
@@ -139,17 +134,17 @@ In our initial testing, we were mostly concerned with the wait time per request:
 
 \subsection*{Configurations}
 
-The most important configuration item for the simulation comes in the form of two lists containing the number of regular and senior TA working at each time slot. Varying these numbers will allow for testing of different schedule assignments. The impact of having a senior TA in the IPL is hitherto unknown; it seems plausible that a senior serves requests with more \textit{skill}, but it is not clear if they serve requests with any more \textit{speed}. For the simulations we ran, we assume a modest service speed gain of 1.5x for senior TAs.
+The most important configuration item for the simulation comes in the form of two lists containing the number of regular and senior TA working at each time slot. Varying these numbers will allow for testing of different schedule assignments. The impact of having a senior TA in the IPL is hitherto unknown; it seems plausible that seniors serve requests with more \textit{skill}, but it is not clear if they serve requests with any more \textit{speed}. For the simulations we ran, we assume a modest service speed gain of 1.5x for senior TAs.
 
-Early versions of the simulation produced output wait times that differed considerably from real wait times calculated directly from our Autumn 2014 data. We hypothesized that the simulation's main shortcoming was its inability to encode the decision-making process of a TA as he/she decides which student to dequeue. During a particularly busy hour at the IPL, both the 2-minute and 10-minute queues are full of students. When a TA approaches the queue managing software to dequeue a student request, he/she can estimate the size of each queue and see each's current wait time. There is no mandated policy for how proceed; instead, a TA needs to make some judgment call about which queue to dequeue from.
+Early versions of the simulation produced output wait times that differed considerably from real wait times calculated directly from our Autumn 2014 data. We hypothesized that the simulation's main shortcoming was its inability to encode the decision-making process of a TA as he or she decides which student to dequeue. During a particularly busy hour at the IPL, both the 2-minute and 10-minute queues are full of students. When a TA approaches the queue managing software to dequeue a student request, he or she can estimate the size of each queue and see each's current wait time. There is no mandated policy for how proceed; instead, a TA needs to make some judgment call about which queue to dequeue from.
 
 Modeling this decision process was a challenge, but we built in a system by which the simulation can accept an arbitrary \texttt{breakTies} procedure. One possible tie-breaking implementation is found and documented in \texttt{policies.py}. With the help of this heuristic, we were able to match real-time wait times more closely for some days. Figures 1 and 2 show the real and simulation wait times respectively across the first Thursday of the Autumn term.
 
-Ultimately an advantage of testable heuristics like \texttt{policies.crisisThresholdsAndFlip} is that they are testable, both in simulation and in the real world. In contrast to the existing approach in which a TA can make his/her own decision about how to address a backlogged queue, a clearly defined policy would allow the CSE department to better anticipate queue behavior under significant traffic.
+Ultimately an advantage of testable heuristics like \texttt{policies.crisisThresholdsAndFlip} is that they are testable, both in simulation and in the real world. In contrast to the existing approach in which a TA can make his or her own decision about how to address a backlogged queue, a clearly defined policy would allow the CSE department to better anticipate queue behavior under significant traffic.
 
 \subsection*{Simplifications}
 
-Request service times vary considerably in the IPL, with some students demanding far more time than they are technically allotted, and others requiring only single sentence answers. For now, service time configurations are handled based on anecdotal reports of typical time ranges. \texttt{simulation.getHelpTime} samples service times from uniform distributions with constant bounds.
+Request service times vary considerably in the IPL, with some students demanding far more time than they are technically allotted and others requiring only single sentence answers. For now, service time configurations are handled based on anecdotal reports of typical time ranges. \texttt{simulation.getHelpTime} samples service times from uniform distributions with constant bounds.
 
 However, in an effort to address this considerable simplification, we can lean on basic queue theory \cite{winston}. Given some interval of queue operation, let $L_s$ be the average number of waiting requests and let $\lambda$ be the arrival rate of requests. If $W_s$ is the average service time across our interval, we can compute it as
 \begin{equation}
@@ -157,7 +152,7 @@ W_s = \frac{L_w}{\lambda}.
 \end{equation}
 For most days, this computation yields plausible mean service times. For the first Thursday of the term, for instance, the mean service time was 6 minutes and 40 seconds.
 
-The utilities in \texttt{queue.py} aid in the computation of these values, but the problem is complicated by the fact that the 2-minute and 10-minute queues presumably have fundamentally different service time distributions. Our recommendation is that service times be recorded directly from the IPL queue-managing software in order to get a more accurate get a sense of how service times vary across the day and across each queue.
+The utilities in \texttt{queue.py} aid in the computation of these values, but the problem is complicated by the fact that the 2-minute and 10-minute queues presumably have fundamentally different service time distributions. Our recommendation is that service times be recorded directly from the IPL queue-managing software in order to get a more accurate sense of how service times vary across the day and across each queue.
 
 While the wait times in Figures 1 and 2 match closely, our simulation failed to predict the behavior of the queue as well for busier days. Our hypothesis is that, in addition to the aforementioned simplifications, our simulation's inaccuracy is due to a key assumption: that there is \textit{no relationship between queue backlog and request service time}. Just as TAs exercise their own varying policies for 2-minute and 10-minute queue tie breaking, they likely decrease the amount of time they help students when the queue gets busier. Constructing yet another scheme for 
 \textit{service time} policy configuration would be an excellent next step in accounting for this relationship, one absolutely necessary for modeling the busiest IPL days.
@@ -178,7 +173,7 @@ Both perspectives are immediately relevant to our problem. On the one hand, as w
 
 To give one example, our model assumes that seniority is measured by the number of quarters an individual has taught. It is important to note that our metric for seniority cannot entirely capture the experience level of an individual, even if correlations can be drawn. Similar subtleties are emphasized in the paper \textit{Perception of Adequacy} by Schmalenberg, Kramer. The paper argues that staffing adequacy is dependent on employee perceptions of the work environment in the unit \cite{schmalenberg}. There are three main points to consider: competency of the staff, teamwork, and a flexible delivery system.
 
-Applying this to our problem, we see that two of the three considerations are met: seniority of staff, as well as a dynamic delivery system for students to ask questions. If we choose to take teamwork into consideration, we will need to address addition questions; for instance, could pairing two TAs to answer one request improve delay times? Such complexity is not currently addressed in our model, but may be an area for further research.
+Applying this to our problem, we see that two of the three considerations are met: seniority of staff, as well as a dynamic delivery system for students to ask questions. If we choose to take teamwork into consideration, we will need to address additional questions; for instance, could pairing two TAs to answer one request improve delay times? Such complexity is not currently addressed in our model, but may be an area for further research.
 
 \section*{Conclusion}
 
@@ -296,7 +291,7 @@ We modeled the problem of optimal TA staffing first as a linear programming prob
 4:30 & 2 & 2 \\
    \end{tabular}
    \\[10pt]
-   \caption{\small{Minimum numbers of total TAs required for each time slot. Most time slots do not require the presence of a senior TA, but where a certain number of seniors is required, we write a pair of counts: minimum total TA count followed by minimum senior count.}}
+   \caption{\small{Minimum numbers of total TAs required for each time slot. Most time slots do not require the presence of a senior TA, but where a certain number of seniors is required, we write a pair of counts: minimum total TA count followed by minimum senior count. Note that on Friday the IPL closes earlier than other weekdays (at 6:30).}}
 \end{table*}
 
 \end{multicols}
