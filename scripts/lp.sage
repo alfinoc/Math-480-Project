@@ -1,19 +1,22 @@
 import json, preferences
+from functools import partial
 
 prefs = json.load(open('prefs.txt'))
 quotas = json.load(open('quotas.txt'))
 seniority = json.load(open('seniority.txt'))
+max_hours_per_ta = json.load(open('max_hours.txt'))
 
 # All constant values for a given LP configuration. Some are loaded from configuration
 # files, while other constants are included as literals below.
 PARAMS = {
     'min_hours_per_ta': 2,
-    'max_hours_per_ta': 19,
+    'max_hours_per_ta': lambda ta : min(max_hours_per_ta['max_hours'][ta], 19.5),
     'min_required_total': preferences.serialize(quotas["total"]),
     'min_required_senior': preferences.serialize(quotas["senior"]),
     'ta_preference': prefs['prefs'],
     'quarters_taught': seniority['seniority'],
-    'is_senior': lambda quarters : quarters >= 3
+    'is_senior': lambda ta : PARAMS['quarters_taught'][ta] >= 3,
+    'senior_priority': 1
 }
 
 # Allow 2 more than the minimum in each time slot.
@@ -46,6 +49,10 @@ def totalTAsWorking(slot, onlySenior=False):
         indices = filter(PARAMS['is_senior'], indicies)
     return sum([ slots[slot][i] for i in indicies ])
 
+# Returns the senior priority coefficient a given ta.
+def senior_priority_coefficent(ta):
+    return PARAMS['senior_priority'] * (PARAMS['quarters_taught'][ta] - 1) + 1
+
 # Add scheduler preferences for min/max required/allowed TAs per slot.
 for i in range(len(slots)):
     working = totalTAsWorking(i)
@@ -61,7 +68,7 @@ for i in range(len(slots)):
 for i in range(PARAMS['num_tas']):
     hours = totalHours(i)
     problem.add_constraint(PARAMS['min_hours_per_ta'] <= hours)
-    problem.add_constraint(hours <= PARAMS['max_hours_per_ta'])
+    problem.add_constraint(hours <= PARAMS['max_hours_per_ta'](i))
 
 # Add constraints for hours that TAs absolutely cannot work.
 for i in range(PARAMS['num_tas']):
@@ -71,7 +78,7 @@ for i in range(PARAMS['num_tas']):
 
 # Maximize total adherence to TA preference, weighted by TA seniority.
 adherence = lambda ta : sum([ PARAMS['ta_preference'][ta][j] * slots[j][ta] for j in slotIndicies ])
-problem.set_objective(sum([ PARAMS['quarters_taught'][i] * adherence(i) for i in taIndicies ]))
+problem.set_objective(sum([ senior_priority_coefficent(i) * adherence(i) for i in taIndicies ]))
 
 # Print solution schedule assignment.
 problem.solve()
