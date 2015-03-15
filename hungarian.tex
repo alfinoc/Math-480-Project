@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{kbordermatrix}
+\begin{document}
+
+\section*{Hungarian Example}
+Before we can begin to implement the Hungarian Method, we will need to construct costs for each TA and their respective preferences. Currently, the TA preferences are presented as continuous values from [0, 1]. To further simplify this task, we choose to convert TA preferences into a discrete set from [0, 10].
+A sample of preferences for Monday which were obtained from generate\textunderscore prefs.py are listed below:
+
+\[
+  \text{Sample TA prefs} = \begin{bmatrix}
+    0.5285 & 0.1634 & 0.7393 \\
+    0.4148 & 0.3269 & 0.5499\\
+    0.8456 & 0.1755 & 0.4566
+    \end{bmatrix} \\
+\]
+
+Under the new assumption that TA preferences are discrete, we can roughly assign respective values by rounding their preference score. This gives us:
+
+\[
+  \text{Cost Matrix} = \kbordermatrix{
+    & TA_1 & TA_2 & TA_3 \\
+    t_1 & 5 & 2 & 9 \\
+    t_2 & 4 & 10 & 3 \\
+    t_3 & 5 & 1 & 0  
+  }
+\]
+
+This does not factor in the weight of seniority, but we can begin the Hungarian Method to illustrate its performance. To maximize TA preferences for each respective time slot, we will begin multiplying the cost matrix by -1 (minimization does not require us to do so).
+
+\[
+  \text{Step 1} = \begin{bmatrix}
+    -5 & -2 & -9 \\
+    -4 & -10 & -3\\
+    -5 & -1 & 0
+    \end{bmatrix} \\
+\]
+
+By subtracting each row by its row minimum, as well as doing the same for each column, we are presented with this matrix:
+
+\[
+  \text{Completed Hungarian} = \begin{bmatrix}
+    0 & 8 & 0 \\
+    1 & 0 & 7\\
+    0 & 0 & 0
+    \end{bmatrix} \\
+\]
+
+We proceed by drawing the minimum number of lines to cover the zeros (one vertical line through each column). If we are presented with the number of lines = order of the matrix, then we have achieved a complete assignment. If an unassigned TA is placed in an unassigned slot for which he or she prefers, the assignment is said to be complete. We can also perform transfers between TAs if conflicts arise from their determined assignment. 
+
+\end{document}
