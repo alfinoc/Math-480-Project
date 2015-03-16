@@ -99,9 +99,9 @@ Random, plausible TA preference generation was a more involved process. As descr
 
 The Python code for preference generation is found in the functions of \texttt{preferences.py}.
 
-For each TA, we first generate a preference map, a Python \texttt{dict} from \texttt{day} to \texttt{list} of preference values between 0 and 1. Each list contains the preferences for that day of the week, one value per time slot. Python's built-in \texttt{gammavariate} function gives us a satisfactory distribution across each day, visible in the rows of Figure 3. After \texttt{preferenceVector} generates this vector, we zero-out several uniformly random days across the week. And finally, we multiply each day's preference vector by a random rank coefficient in \texttt{tierDays}. As a final step, the preference map is transformed into a complete preference list where the $i$th entry corresponds to the $i$th time slot in the LP.
+For each TA, we generate a preference map like the one shown in Figure 3. Python's built-in \texttt{gammavariate} function gives us a satisfactory distribution across each day, visible in the gradual variation across days in Figure 3. Next we zero-out several hours across the week to imitate a typical UW undergraduate course schedule. And finally, we multiply each day's preference list by a random rank coefficient, since it is unlikely that a TA would prefer all days equally. As a final step, the map is transformed into a complete preference list where the $j$th entry corresponds to the $j$th time slot in the LP: a vector $[a_{i1}, ... a_{i(m-1)}]$ for TA $i$.
 
-As mentioned above, TA seniority is measured in number of quarters taught. These values were provided by the CSE department and read into our Sage program as a simple list of integers. Because TA preferences are randomly generated, the pairing of seniority value to preference vector was done arbitrarily.
+As mentioned above, TA seniority is measured in number of quarters taught. These values were provided by the CSE department and read into our Sage program as a simple list of integers. Because TA preferences are randomly generated, the pairing of seniority value to preference list was done arbitrarily.
 
 \section*{LP Simplifications}
 
@@ -120,6 +120,32 @@ Our Sage program outputs a solution to the LP as a matrix of decision variables 
 The solution fits our intuitions when generating preferences. TAs tend to work nearly consecutive hours where possible. TA maximum hour preferences can be verified at a glance: for this test solution, we set TAs 0 and 1 to request 4 hours a week of IPL work, TAs 2 through 6 to request 3 hours, and the rest to request 2.
 
 Indicators of the above simplifications are also visible: the 1:30pm time slots on Saturday and Sunday are certainly not where TA coordinators would prefer to schedule extra hours, but the LP solution assigned TAs there according to their personal preferences.
+
+\section*{Alternative Approach}
+
+The LP formulation of our problem is perfectly suitable for solving our assignment problem with 67 TAs and 50 time slots as above. We experimented with as many as 134 TAs assigned to 50 time slots and found that program performance did not considerably depreciate (still under 5 seconds of runtime), but we expect that Sage's branch-and-bound implementation has the potential to slow with even larger input data sets. In case the CSE department see eventually sees impractically slow runtimes with our LP solution, we implemented an alternative algorithm, the Hungarian method. The Hungarian method solves the general assignment problem in polynomial time, in contrast to the potentially exponential complexity of our branch-and-bound implementation (TODO: cite wikipedia).
+
+\subsection*{Algorithm}
+
+\subsection*{Implementation}
+
+Our implementation of the Hungarian method can be found in \texttt{hungarian.sage}. The program takes as input precisely the problem configuration discussed above, builds an appropriate cost matrix based on TA preferences, and determines a TA schedule by repeated application of the Hungarian method.
+
+We first convert the $a_{ij}$ preference values described above to discrete cost values. The $ij$th entry in our $n$ by $m$ cost matrix is $cost(a_{ij})$ where
+\begin{equation}
+cost(a_{ij}) = \left\{
+   \begin{array}{lr}
+      \lfloor(101 - 100a_{ij})\rfloor & : a_{ij} \neq 0 \\
+      \infty & : a_{ij} = 0
+   \end{array}
+   \right.
+\end{equation}
+
+Lower $a_{ij}$ correspond to costs close to 101, and higher $a_{ij}$ correspond to costs close to 0. The absolute no-assign case of $a_{ij} = 0$ need only correspond to a large enough cost that the Hungarian method will not attempt to schedule TA $i$ to slot $j$ except as a last resort. In our case, $\infty$ is implemented programmatically as an arbitrarily large integer value (we chose $10^6$). The Hungarian method requires that the cost matrix be square, so we add large values to whichever rows or columns are deficient in order to ensure impossible assignments do not occur.
+
+The implementation works in several stages. At each stage, we solve a subproblem: given sets of offering TAs $T \subset \{0, ..., n - 1\}$ and unsatisfied time slots $S \subset \{0, ..., m - 1\}$, we attempt to assign each TA in $T$ to one slot in $S$. We hand this subproblem off to the \texttt{munkres} Python module's Hungarian method implementation. At the end of a stage, we add each finite cost assignment, a pair $(t, s) \in T \times S$, to our cumulative schedule. One complete stage is handled by the \texttt{hungarian.assign} function. $T$ and $S$ are determined at each stage by \texttt{hungarian.tasToConsider} and \texttt{hungarian.slotsToConsider}.
+
+We repeatedly apply this procedure until all quotas are met, reducing each slot's quota by at most 1 TA on each iteration. In order to ensure that we fill senior quotas, we assign seniors in a first wave until all such quotas are met, then assign all remaining TAs to remaining slots. During these first two waves, we assign each TA to exactly 2 time slots (the minimum required). Finally, some TAs may have requested more than those 2 hours. For these TAs we schedule extra work hours greedily according to seniority. The resulting schedule looks much like that produced by the LP approach and is shown in Table ?.
 
 \section*{Evaluation}
 
@@ -332,7 +358,7 @@ $w$ & Total Adherence & Total Weighted Adherence & Objective Value & Mean Prefer
     & 96.774 & 264.396 & & 0.58 &  0.837
    \end{tabular}
    \\[10pt]
-   \caption{\small{Evaluation results for 10 generated schedules for various values of $w$ in Equation 6. Total and weighted adherence are z-values of Equation 6 at $w = 0$ and $w = 1$ respectively. Mean preferences scores measure the average adherence to preference in assigned slots and are computed as mean $x_{ij}a_{ij}$ and mean $x_{ij}a_{ij}s_i$ respectively. The final row gives the results for the simulation of the existing approach, where $w$ and objective function values are not applicable. }}
+   \caption{\small{Evaluation results for 10 generated schedules for various values of $w$ in Equation 6. Total and weighted adherence are $z$-values of Equation 6 at $w = 0$ and $w = 1$ respectively. Mean preferences scores measure the average adherence to preference in assigned slots and are computed as mean $x_{ij}a_{ij}$ and mean $x_{ij}a_{ij}s_i$ respectively. The final row gives the results for the simulation of the existing approach, where $w$ and objective function values are not applicable. }}
 \end{table*}
 
 \begin{table*}[ht]
@@ -411,6 +437,125 @@ TA & Hours Scheduled \\ \hline
    \end{tabular}
    \\[10pt]
    \caption{\small{  }}
+\end{table*}
+
+\begin{figure*}[ht]
+   \centering
+   \pgfplotsset{tick label style={font=\footnotesize},
+      label style={font=\small},
+      legend style={font=\small},
+      width=14cm,
+      height=7cm
+   }
+   \begin{tikzpicture}
+      \begin{axis}[
+         ylabel=Mean Preference,
+         xlabel=TA (sorted by quarter),
+         bar width=1pt,
+         enlarge x limits=0.05,
+         enlarge y limits=0.05,
+         ybar
+      ]
+      \addplot+[draw=white, fill=black] coordinates
+      {
+(0, 0.6087420042643923)
+(1, 0.6259878419452888)
+(2, 0.7494505494505495)
+(3, 0.8349056603773585)
+(4, 0.7810304449648712)
+(5, 0.7432432432432432)
+(6, 0.8489583333333333)
+(7, 0.7594972594972594)
+(8, 0.7072743207712533)
+(9, 0.8828571428571428)
+(10, 0.22900763358778625)
+(11, 0.6691729323308271)
+(12, 0.8317307692307692)
+(13, 0.8560606060606061)
+(14, 0.6735449735449734)
+(15, 0.49021029731689625)
+(16, 0.7959183673469388)
+(17, 0.29591836734693877)
+(18, 0.753968253968254)
+(19, 0.7990654205607477)
+(20, 0.9299363057324841)
+(21, 0.8530612244897959)
+(22, 0.8640350877192983)
+(23, 0.5919377652050919)
+(24, 0.5031446540880503)
+(25, 0.39237451737451734)
+(26, 0.17393224057428786)
+(27, 0.26975259377494015)
+(28, 0.5243764172335601)
+(29, 0.5074626865671642)
+(30, 0.8926553672316384)
+(31, 0.7633928571428572)
+(32, 0.9724770642201834)
+(33, 0.5612903225806452)
+(34, 0.6399515738498789)
+(35, 0.8879310344827587)
+(36, 0.47012987012987006)
+(37, 0.8174244314928725)
+(38, 0.8485714285714285)
+(39, 0.8701923076923077)
+(40, 0.8979591836734694)
+(41, 0.9351851851851851)
+(42, 0.8597560975609756)
+(43, 0.9846153846153847)
+(44, 0.9956896551724138)
+(45, 0.7458427309912459)
+(46, 0.8221884498480243)
+(47, 0.97)
+(48, 0.9722222222222222)
+(49, 0.7857142857142857)
+(50, 0.9013227513227513)
+(51, 0.9498556998556998)
+(52, 0.7545219638242894)
+(53, 0.961038961038961)
+(54, 0.8009259259259259)
+(55, 0.8347826086956522)
+(56, 0.8443396226415094)
+(57, 0.910828025477707)
+(58, 0.9548872180451128)
+(59, 0.9144869215291751)
+(60, 0.8389830508474576)
+(61, 0.7896825396825395)
+(62, 0.7889610389610389)
+(63, 0.7653061224489796)
+(64, 0.9285714285714286)
+(65, 0.9285714285714286)
+(66, 0.9163265306122449)
+      };
+      \end{axis}
+   \end{tikzpicture}
+   \caption{\small{ new caption. }}
+\end{figure*}
+
+\begin{table*}[ht]
+\small
+   \centering
+   \begin{tabular}{ l | c | c | c | c | c }
+& Monday & Tuesday & Wednesday & Thursday & Friday \\ \hline
+12:30 & 1, \textbf{2}, \textbf{52} & \textbf{4}, 18, \textbf{25}, 56 & \textbf{2}, 66 & 66 & 0, 9 \\
+1:30 & 10, \textbf{19} & \textbf{11}, \textbf{36}, \textbf{49} & \textbf{25}, \textbf{52} & 29, 47 & \textbf{36} \\
+2:30 & 10, \textbf{35}, \textbf{64} & 0, 1, \textbf{49}, 56, \textbf{61} & 5, 13, 15, \textbf{50} & 6, 47, \textbf{55}, \textbf{63} & \textbf{24}, \textbf{33}, 62 \\
+3:30 & \textbf{2}, 18, 27, \textbf{39} & 0, 1, \textbf{58}, \textbf{61}, \textbf{64} & \textbf{4}, \textbf{21}, \textbf{60}, \textbf{63} & 23, \textbf{40}, \textbf{60} & \textbf{20}, 26, \textbf{58} \\
+4:30 & \textbf{8}, \textbf{22}, 27, \textbf{35} & 0, 1, \textbf{20}, \textbf{53} & \textbf{4}, \textbf{8}, \textbf{46}, 59 & 5, 6, 16, \textbf{17}, 62 & 26, \textbf{39}, \textbf{53} \\
+5:30 & 30, 32, \textbf{45} &  & 13, \textbf{22}, 32, \textbf{50} & 16, 28, \textbf{40}, \textbf{44} & \textbf{24}, \textbf{33} \\
+6:30 & 12, \textbf{34}, \textbf{57} & 29, \textbf{31}, 37, \textbf{41} & \textbf{7}, 9, \textbf{11} & 5, 28, \textbf{48}, \textbf{65} &  \\
+7:30 & \textbf{45}, \textbf{51} & \textbf{31}, 37, 43 & \textbf{7}, 15, \textbf{46} & \textbf{14}, \textbf{19}, 23, \textbf{65} &  \\
+8:30 & \textbf{34}, \textbf{51} & \textbf{41}, 43, \textbf{55} & \textbf{21}, 59 & \textbf{14}, \textbf{44}, \textbf{54} &  \\
+   \end{tabular}
+   \\[10pt]
+   \centering
+   \begin{tabular}{ l | c | c } 
+1:30 & 30 & \textbf{3}, 6, 12 \\
+2:30 & \textbf{38} & \textbf{48} \\
+3:30 & \textbf{38}, \textbf{42} & \textbf{3}, \textbf{17} \\
+4:30 & \textbf{42}, \textbf{54} & \textbf{3}, \textbf{57} \\
+   \end{tabular}
+   \\[10pt]
+   \caption{\small{A sample schedule generated by the Hungarian method with $w=1$ senior priority. Total and weighted adherence scores were 103.185, 264.638, respectively, while regular and senior mean preference scores were 0.666, 0.809 respectively. While the Hungarian algorithm solves the assignment problem optimally, these scores are lower than those for the LP generated schedule. This discrepency was likely due to way that senior and regular TAs were assigned in two sequential applications of the Hungarian method, whereas a single run of the LP incorporates all constraints.}}
 \end{table*}
 
 \end{multicols}

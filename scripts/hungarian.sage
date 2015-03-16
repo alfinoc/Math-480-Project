@@ -69,7 +69,7 @@ PARAMS['num_time_slots'] = len(PARAMS['min_required_total'])
 TAS = range(PARAMS['num_tas'])
 SLOTS = range(PARAMS['num_time_slots'])
 
-# Returns the senior priority coefficient a given ta (how much more to weight
+# Returns the senior priority coefficient a given ta (how much more to weigh
 # the given TA's preferences).
 def senior_priority_coefficent(ta):
     return PARAMS['senior_priority'] * (PARAMS['quarters_taught'][ta] - 1) + 1
@@ -78,7 +78,7 @@ def senior_priority_coefficent(ta):
 # coefficient for that TA.
 def applySeniorFactor(prefMat):
     result = []
-    for ta in range(prefMat):
+    for ta in range(len(prefMat)):
         coeff = senior_priority_coefficent(ta)
         result.append(map(lambda pref : coeff * pref, prefMat[ta]))
     return result
@@ -103,8 +103,10 @@ def assignmentList(schedule):
 
 # Convert 0-1 real valued preferences to 0-100 integer valued preferences, transform
 # preference matrix to cost matrix, then replace all 0's (impossible time slots)
-# with LARGE values. Finally, square the matrix off.
+# with LARGE values. Scale preferences by senior priority factor. Finally, square the
+# matrix off.
 costs = PARAMS['ta_preference']
+costs = applySeniorFactor(costs)
 costs = mult(100, costs)
 costs = truncate(costs)
 costs = perturb(costs)
@@ -145,34 +147,68 @@ def assign(tas, slots, blacklist=[]):
             result[ta].append(slot)
     return result
 
-def tasToConsider(currentSchedule):
+# Returns a list of TA indices to consider for assignment, including only seniors if
+# senior is true and all TAs otherwise. Includes only TAs whose scheduled hours do
+# not meet the minimum required.
+def tasToConsider(currentSchedule, senior=False):
     def hoursWanted(ta):
         return PARAMS['min_hours_per_ta'] - len(currentSchedule[ta])
+    tas = filter(PARAMS['is_senior'], TAS) if senior else TAS
     return filter(lambda ta : hoursWanted(ta) > 0, TAS)
 
-def slotsToConsider(currentSchedule):
+# Returns a list of slot indices to consider for assignment, including only slots
+# that do not have satisfied quotas. If senior is true, only senior quotas are used;
+# otherwise, total TA quotas are used.
+def slotsToConsider(currentSchedule, senior=False):
     def slotsWanting(slot):
-        required = PARAMS['min_required_total'][slot]
+        quotas = PARAMS['min_required_senior'] if senior else PARAMS['min_required_total']
         filled = len(filter(lambda assigned : slot in assigned, currentSchedule))
-        return required - filled
+        return quotas[slot] - filled
     return filter(lambda slot : slotsWanting(slot) > 0, SLOTS)
+
+# Apply the Hungarian method repeatedly until all quotas are filled. If senior is True,
+# consider only senior quotas; otherwise, consider total quotas. Attempt at most attempts
+# times. Returns the result of merging the priorSchedule with the newly generated assignments.
+def repeatHungarian(priorSchedule, senior=False, attempts=10):
+    schedule = priorSchedule
+    for i in range(attempts):
+        tas = tasToConsider(schedule, senior)
+        slots = slotsToConsider(schedule, senior)
+        if len(slots) == 0:
+            break
+        new = assign(tas, slots, assignmentList(schedule))
+        schedule = merge(schedule, new)
+    print 'Solution found in {0} Hungarian applications.'.format(i)
+    return schedule
+
+# Returns all the TAs scheduled for the given slot in the given schedule.
+def scheduledFor(slot, schedule):
+    result = []
+    for ta in range(len(schedule)):
+        if slot in schedule[ta]:
+            result.append(ta)
+    return result
 
 schedule = map(lambda x : [], TAS)
 
 # Assign all senior TAs until senior quotas are met.
+schedule = repeatHungarian(schedule, True, 10)
 
 # Assign all TAs until all quotas are met.
-for i in range(7):
-    tas = tasToConsider(schedule)
-    slots = slotsToConsider(schedule)
-    if len(slots) == 0:
-        break
-    new = assign(tas, slots, assignmentList(schedule))
-    schedule = merge(schedule, new)
-    print 'round {0}: t{1} s{2} {2}'.format(i, len(tas), len(slots), len(filter(lambda a : len(a) != 0, new)))
+schedule = repeatHungarian(schedule, False, 10)
 
 # Greedily place extra hours per TA.
-print tas, slots
+extra = filter(lambda ta : len(schedule[ta]) < PARAMS['max_hours_per_ta'](ta), TAS)
+for ta in extra:
+    ranked = sorted(zip(SLOTS, PARAMS['ta_preference'][ta]), key=lambda pair : pair[1])
+    numDesired = PARAMS['max_hours_per_ta'](ta) - len(schedule[ta])
+    while len(ranked) > 0 and numDesired > 0:
+        slot, pref = ranked.pop()
+        alreadyWorking = scheduledFor(slot, schedule)
+        if ta not in alreadyWorking and len(alreadyWorking) < PARAMS['max_allowed_total'][slot]:
+            schedule[ta].append(slot)
+            numDesired -= 1
 
+# Report solution schedule as map from TA to slots.
 for ta in range(len(schedule)):
     print ta, schedule[ta]

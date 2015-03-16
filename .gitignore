@@ -6,3 +6,6 @@
 data/*
 *.pyc
 pretty_code/*
+poster/*
+review/*
+
