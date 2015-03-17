@@ -1,28 +1,7 @@
 import json, preferences
-from functools import partial
+from problem import getConfig
 
-prefs = json.load(open('prefs.txt'))
-quotas = json.load(open('quotas.txt'))
-seniority = json.load(open('seniority.txt'))
-max_hours_per_ta = json.load(open('max_hours.txt'))
-
-# All constant values for a given LP configuration. Some are loaded from configuration
-# files, while other constants are included as literals below.
-PARAMS = {
-    'min_hours_per_ta': 2,
-    'max_hours_per_ta': lambda ta : min(max_hours_per_ta['max_hours'][ta], 19.5),
-    'min_required_total': preferences.serialize(quotas["total"]),
-    'min_required_senior': preferences.serialize(quotas["senior"]),
-    'ta_preference': prefs['prefs'],
-    'quarters_taught': seniority['seniority'],
-    'is_senior': lambda ta : PARAMS['quarters_taught'][ta] >= 3,
-    'senior_priority': 1
-}
-
-# Allow 2 more than the minimum in each time slot.
-PARAMS['max_allowed_total'] = map(lambda x : x + 2, PARAMS['min_required_total'])
-PARAMS['num_tas'] = len(PARAMS['ta_preference'])
-PARAMS['num_time_slots'] = len(PARAMS['min_required_total'])
+PARAMS = getConfig()
 
 # Let decision variable slots[i][j] be 1 if TA j works time slot i, and be 0
 # otherwise.
@@ -81,6 +60,6 @@ adherence = lambda ta : sum([ PARAMS['ta_preference'][ta][j] * slots[j][ta] for 
 problem.set_objective(sum([ senior_priority_coefficent(i) * adherence(i) for i in taIndicies ]))
 
 # Print solution schedule assignment.
-problem.solve()
+print 'Objective Value:', problem.solve()
 for s in slotIndicies:
     print s, filter(lambda ta : problem.get_values(slots[s])[ta] != 0, taIndicies)
