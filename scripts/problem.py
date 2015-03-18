@@ -21,24 +21,24 @@ max_hours_per_ta = json.load(open('max_hours.txt'))
 # for a given scheduling problem. Some are loaded from configuration data files,
 # while other constants are included as literals below.
 def getConfig():
-    config = {
-        'min_hours_per_ta': 2,
-        'max_hours_per_ta': lambda ta : min(max_hours_per_ta['max_hours'][ta], 19.5),
-        'min_required_total': preferences.serialize(quotas["total"]),
-        'min_required_senior': preferences.serialize(quotas["senior"]),
-        'ta_preference': prefs['prefs'],
-        'quarters_taught': seniority['seniority'],
-        'is_senior': lambda ta : config['quarters_taught'][ta] >= 3,
-        'senior_priority': 1,
-        'min_pref': 0.3
-    }
+   config = {
+      'min_hours_per_ta': 2,
+      'max_hours_per_ta': lambda ta : min(max_hours_per_ta['max_hours'][ta], 19.5),
+      'min_required_total': preferences.serialize(quotas["total"]),
+      'min_required_senior': preferences.serialize(quotas["senior"]),
+      'ta_preference': prefs['prefs'],
+      'quarters_taught': seniority['seniority'],
+      'is_senior': lambda ta : config['quarters_taught'][ta] >= 3,
+      'senior_priority': 1,
+      'min_pref': 0.3
+   }
 
-    # Allow 2 more than the minimum in each time slot.
-    config['max_allowed_total'] = map(lambda x : x + 2, config['min_required_total'])
-    config['num_tas'] = len(config['ta_preference'])
-    config['num_time_slots'] = len(config['min_required_total'])
+   # Allow 2 more than the minimum in each time slot.
+   config['max_allowed_total'] = map(lambda x : x + 2, config['min_required_total'])
+   config['num_tas'] = len(config['ta_preference'])
+   config['num_time_slots'] = len(config['min_required_total'])
 
-    # Treat all preferences below min_pref.
-    meetMinPref = lambda row : map(lambda x : x if x >= config['min_pref'] else 0, row)
-    config['ta_preference'] = map(lambda row : meetMinPref(row), config['ta_preference'])
-    return config
+   # Treat all preferences below min_pref.
+   meetMinPref = lambda row : map(lambda x : x if x >= config['min_pref'] else 0, row)
+   config['ta_preference'] = map(lambda row : meetMinPref(row), config['ta_preference'])
+   return config
