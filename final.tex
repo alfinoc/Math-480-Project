@@ -232,6 +232,12 @@ And finally on a more practical note, our model assumes known real-valued $a_{ij
 
 We modeled the problem of optimal TA staffing first as a linear programming problem, translating CSE department staffing requirements into formal constraints and using Sage's LP solver to determine an IPL schedule that maximizes adherence to TA preference in total. To address the difficulty of IPL operation policy evaluation in general, we built a simulation tool designed to measure IPL queue behavior under typical student request traffic. As the TA community continues to grow in response to increased demand for the introductory computer science courses here at the UW, we hope that our tool will provide a scalable solution to the problem of optimal IPL scheduling.
 
+\section*{Acknowledgements}
+
+Thanks to Connor Moore for providing guidance throughout the project and for granting access to essential queue log and scheduling data from the Autumn 2014 term.
+
+Thanks to Prof. Sara Billey for suggesting the use of the Hungarian method for solving the general assignment problem, and to Shang-Chieh Hung and Morgan Sinclaire for explaining the algorithm and pointing us to the \texttt{munkres} solution module.
+
 \section*{Feedback}
 
 ``The department has been hoping for a project like this for some time, since the introductory courses began expanding rapidly. In fact, much of the data used was gathered in anticipation for such a project. Something like this is great not only because of its face value, but also because it is indicative of what else we can do with our large amount of data combined with mathematical knowledge and strong intuition. I'm very impressed with what this can do, and will definitely consider incorporating this system into our quarterly IPL assignments.'' - \textit{Connor Moore, CSE 14x TA Coordinator}
